@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,14 A30,30 0 0,1 84,44 A30,30 0 0,1 54,74 A30,30 0 0,1 24,44 A30,30 0 0,1 54,14"/>
+
+    <!-- Bell body -->
+    <path
+        android:fillColor="#FF6B6B"
+        android:strokeColor="#FF4444"
+        android:strokeWidth="2"
+        android:pathData="M54,20 C46,20 40,26 40,34 L40,50 C40,52 38,54 36,54 L72,54 C70,54 68,52 68,50 L68,34 C68,26 62,20 54,20 Z"/>
+
+    <!-- Bell top handle -->
+    <path
+        android:fillColor="#FF4444"
+        android:pathData="M54,16 C52,16 50,18 50,20 L58,20 C58,18 56,16 54,16 Z"/>
+
+    <!-- Bell clapper -->
+    <path
+        android:fillColor="#FFD700"
+        android:strokeColor="#FFA500"
+        android:strokeWidth="1"
+        android:pathData="M54,58 m-4,0 a4,4 0 1,1 8,0 a4,4 0 1,1 -8,0"/>
+
+    <!-- Motion lines (ding dong effect) -->
+    <path
+        android:strokeColor="#FFA500"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M35,40 Q30,40 28,38"/>
+    <path
+        android:strokeColor="#FFA500"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M73,40 Q78,40 80,38"/>
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M32,46 Q27,46 25,44"/>
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M76,46 Q81,46 83,44"/>
+</vector>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Bell body with gradient effect -->
+    <path
+        android:fillColor="#FF6B6B"
+        android:pathData="M54,28 C44,28 36,36 36,46 L36,58 C36,60 34,62 32,62 L76,62 C74,62 72,60 72,58 L72,46 C72,36 64,28 54,28 Z"/>
+
+    <!-- Bell highlight -->
+    <path
+        android:fillColor="#FF8888"
+        android:pathData="M54,28 C44,28 36,36 36,46 L36,50 C36,40 44,32 54,32 C64,32 72,40 72,50 L72,46 C72,36 64,28 54,28 Z"/>
+
+    <!-- Bell bottom rim -->
+    <path
+        android:fillColor="#FF4444"
+        android:pathData="M30,62 L78,62 C78,64 76,66 74,66 L34,66 C32,66 30,64 30,62 Z"/>
+
+    <!-- Bell clapper -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,68 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0"/>
+
+    <!-- Motion lines (animated ding dong) -->
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M28,48 Q22,48 20,46"
+        android:strokeLineCap="round"/>
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M80,48 Q86,48 88,46"
+        android:strokeLineCap="round"/>
+    <path
+        android:strokeColor="#FFA500"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M26,54 Q20,54 18,52"
+        android:strokeLineCap="round"/>
+    <path
+        android:strokeColor="#FFA500"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M82,54 Q88,54 90,52"
+        android:strokeLineCap="round"/>
+
+</vector>

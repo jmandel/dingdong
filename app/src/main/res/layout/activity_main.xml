@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="#F5F5F5">
+
+  <LinearLayout
+      android:orientation="vertical"
+      android:padding="16dp"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content">
+
+    <TextView
+        android:text="Alert Sound"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp">
+
+      <Spinner
+          android:id="@+id/spinnerSound"
+          android:layout_width="0dp"
+          android:layout_weight="1"
+          android:layout_height="48dp"
+          android:textSize="16sp" />
+
+      <Button
+          android:id="@+id/btnPreview"
+          android:text="Preview"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginStart="8dp"
+          android:textAllCaps="false"
+          android:textSize="14sp" />
+
+      <Button
+          android:id="@+id/btnCustomSound"
+          android:text="Custom"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginStart="8dp"
+          android:textAllCaps="false"
+          android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:text="Phone Number Filters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000" />
+
+    <TextView
+        android:text="Enter simple text to match (not regex). Spaces and punctuation are ignored.\nExample: '555' matches any number with 555"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/editPhone"
+        android:inputType="textMultiLine"
+        android:minLines="3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="555\n212\n8005551234"
+        android:textColorHint="#666666"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="2dp" />
+
+    <TextView
+        android:text="App Name Filters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000"/>
+
+    <TextView
+        android:text="Match partial app names. 'nsmi' matches 'John Smith' app.\nSpaces/punctuation ignored, case doesn't matter."
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/editAppNames"
+        android:inputType="textMultiLine"
+        android:minLines="3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="slack\nwhats\nteams\nnsmi"
+        android:textColorHint="#666666"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="2dp" />
+
+    <TextView
+        android:text="Notification Content Filters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000"/>
+
+    <TextView
+        android:text="Match text in notifications. Partial matches work.\n'prod' matches 'production', 'down' matches 'shutdown'"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="#333333"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/editNotificationContent"
+        android:inputType="textMultiLine"
+        android:minLines="3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="urgent\nprod\ndown\nemergency\ncritical"
+        android:textColorHint="#666666"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="2dp" />
+
+    <CheckBox
+        android:id="@+id/checkRequireBoth"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Require BOTH app and content match"
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:checked="false" />
+
+    <TextView
+        android:text="Advanced Settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:text="Minimum Volume Level:"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:layout_gravity="center_vertical"/>
+
+        <SeekBar
+            android:id="@+id/seekMinVolume"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="10"/>
+
+        <TextView
+            android:id="@+id/textMinVolume"
+            android:text="10%"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:text="Volume Restore Delay:"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:layout_gravity="center_vertical"/>
+
+        <SeekBar
+            android:id="@+id/seekVolumeDelay"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:max="10"
+            android:progress="3"/>
+
+        <TextView
+            android:id="@+id/textVolumeDelay"
+            android:text="3s"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:text="Sound Repeat Count:"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:layout_gravity="center_vertical"/>
+
+        <SeekBar
+            android:id="@+id/seekRepeatCount"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:max="5"
+            android:progress="1"/>
+
+        <TextView
+            android:id="@+id/textRepeatCount"
+            android:text="1x"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:text="Wake Lock Duration:"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:layout_gravity="center_vertical"/>
+
+        <SeekBar
+            android:id="@+id/seekWakeDuration"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:max="20"
+            android:progress="7"/>
+
+        <TextView
+            android:id="@+id/textWakeDuration"
+            android:text="7s"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/checkVibrate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Vibrate with alert"
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:checked="true" />
+
+    <CheckBox
+        android:id="@+id/checkRestoreVolume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Restore original volume after alert"
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:checked="true" />
+
+    <TextView
+        android:text="Event Logging"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000"/>
+
+    <CheckBox
+        android:id="@+id/checkEnableLogging"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Enable event logging"
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:checked="true" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:text="Log Retention:"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:layout_gravity="center_vertical"/>
+
+        <SeekBar
+            android:id="@+id/seekLogRetention"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:max="168"
+            android:progress="24"/>
+
+        <TextView
+            android:id="@+id/textLogRetention"
+            android:text="24h"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnClearLogs"
+        android:text="Clear All Logs Now"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:textAllCaps="false"
+        android:textSize="14sp"
+        android:backgroundTint="#FF5252"
+        android:textColor="#FFFFFF"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp">
+
+        <Button
+            android:id="@+id/btnSave"
+            android:text="Save All Settings"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="56dp"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            android:backgroundTint="#2196F3"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnViewLog"
+            android:text="View Log"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginStart="8dp"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            android:backgroundTint="#757575"
+            android:textColor="#FFFFFF"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:text="Required Permissions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#000000"/>
+
+    <Button
+        android:id="@+id/btnNotificationAccess"
+        android:text="Grant Notification Access"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="12dp"
+        android:textAllCaps="false"
+        android:textSize="16sp"/>
+
+    <Button
+        android:id="@+id/btnCallScreeningRole"
+        android:text="Grant Phone &amp; Call Log Permissions"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="8dp"
+        android:textAllCaps="false"
+        android:textSize="16sp"/>
+
+    <Button
+        android:id="@+id/btnPostNotifications"
+        android:text="Allow Notifications (Android 13+)"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="8dp"
+        android:textAllCaps="false"
+        android:textSize="16sp"/>
+
+  </LinearLayout>
+</ScrollView>
