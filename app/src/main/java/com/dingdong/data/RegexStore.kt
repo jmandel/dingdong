@@ -15,6 +15,8 @@ object RegexStore {
   private const val KEY_WAKE_DURATION = "wake_duration"
   private const val KEY_VIBRATE = "vibrate_enabled"
   private const val KEY_RESTORE_VOLUME = "restore_volume"
+  private const val KEY_LOGGING_ENABLED = "logging_enabled"
+  private const val KEY_LOG_RETENTION_HOURS = "log_retention_hours"
 
   private lateinit var prefs: SharedPreferences
 
@@ -150,4 +152,10 @@ object RegexStore {
 
   fun getRestoreVolume(): Boolean = prefs.getBoolean(KEY_RESTORE_VOLUME, true)
   fun setRestoreVolume(value: Boolean) = prefs.edit().putBoolean(KEY_RESTORE_VOLUME, value).apply()
+
+  fun getLoggingEnabled(): Boolean = prefs.getBoolean(KEY_LOGGING_ENABLED, true)
+  fun setLoggingEnabled(value: Boolean) = prefs.edit().putBoolean(KEY_LOGGING_ENABLED, value).apply()
+
+  fun getLogRetentionHours(): Int = prefs.getInt(KEY_LOG_RETENTION_HOURS, 24)
+  fun setLogRetentionHours(value: Int) = prefs.edit().putInt(KEY_LOG_RETENTION_HOURS, value).apply()
 }

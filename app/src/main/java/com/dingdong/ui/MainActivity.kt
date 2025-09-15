@@ -19,6 +19,7 @@ import com.dingdong.data.RegexStore
 import com.dingdong.databinding.ActivityMainBinding
 import com.dingdong.media.AlertSound
 import com.dingdong.media.SoundManager
+import com.dingdong.data.EventLogger
 import android.widget.SeekBar
 
 class MainActivity : ComponentActivity() {
@@ -118,6 +119,8 @@ class MainActivity : ComponentActivity() {
       RegexStore.setWakeDuration(vb.seekWakeDuration.progress)
       RegexStore.setVibrateEnabled(vb.checkVibrate.isChecked)
       RegexStore.setRestoreVolume(vb.checkRestoreVolume.isChecked)
+      RegexStore.setLoggingEnabled(vb.checkEnableLogging.isChecked)
+      RegexStore.setLogRetentionHours(vb.seekLogRetention.progress)
 
       Toast.makeText(this, "All settings saved!", Toast.LENGTH_SHORT).show()
     }
@@ -150,6 +153,11 @@ class MainActivity : ComponentActivity() {
 
     vb.btnViewLog.setOnClickListener {
       startActivity(Intent(this, EventLogActivity::class.java))
+    }
+
+    vb.btnClearLogs.setOnClickListener {
+      EventLogger.clearEvents(this)
+      Toast.makeText(this, "Event logs cleared", Toast.LENGTH_SHORT).show()
     }
   }
 
@@ -190,6 +198,11 @@ class MainActivity : ComponentActivity() {
     vb.checkVibrate.isChecked = RegexStore.getVibrateEnabled()
     vb.checkRestoreVolume.isChecked = RegexStore.getRestoreVolume()
 
+    // Logging settings
+    vb.checkEnableLogging.isChecked = RegexStore.getLoggingEnabled()
+    vb.seekLogRetention.progress = RegexStore.getLogRetentionHours()
+    updateLogRetentionText(RegexStore.getLogRetentionHours())
+
     // Set up seekbar listeners
     vb.seekMinVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -222,5 +235,22 @@ class MainActivity : ComponentActivity() {
       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
       override fun onStopTrackingTouch(seekBar: SeekBar?) {}
     })
+
+    vb.seekLogRetention.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+      override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+        updateLogRetentionText(progress)
+      }
+      override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+      override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+    })
+  }
+
+  private fun updateLogRetentionText(hours: Int) {
+    vb.textLogRetention.text = when {
+      hours == 0 -> "Off"
+      hours <= 24 -> "${hours}h"
+      hours <= 168 -> "${hours / 24}d"
+      else -> "7d"
+    }
   }
 }

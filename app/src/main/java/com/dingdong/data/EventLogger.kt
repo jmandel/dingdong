@@ -32,6 +32,9 @@ object EventLogger {
         triggered: Boolean,
         matchDetails: String = ""
     ) {
+        // Check if logging is enabled
+        if (!RegexStore.getLoggingEnabled()) return
+
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val eventsJson = prefs.getString(KEY_EVENTS, "[]") ?: "[]"
         val events = JSONArray(eventsJson)
@@ -63,21 +66,38 @@ object EventLogger {
         val eventsJson = prefs.getString(KEY_EVENTS, "[]") ?: "[]"
         val events = JSONArray(eventsJson)
 
+        // Filter out events older than retention period
+        val retentionHours = RegexStore.getLogRetentionHours()
+        val cutoffTime = System.currentTimeMillis() - (retentionHours * 3600000L)
+
         val result = mutableListOf<EventLog>()
+        val filteredEvents = JSONArray()
+
         for (i in 0 until events.length()) {
             val event = events.getJSONObject(i)
-            result.add(
-                EventLog(
-                    timestamp = event.getLong("timestamp"),
-                    type = event.getString("type"),
-                    source = event.getString("source"),
-                    content = event.getString("content"),
-                    matched = event.getBoolean("matched"),
-                    triggered = event.getBoolean("triggered"),
-                    matchDetails = event.optString("matchDetails", "")
+            val timestamp = event.getLong("timestamp")
+
+            if (timestamp >= cutoffTime) {
+                filteredEvents.put(event)
+                result.add(
+                    EventLog(
+                        timestamp = timestamp,
+                        type = event.getString("type"),
+                        source = event.getString("source"),
+                        content = event.getString("content"),
+                        matched = event.getBoolean("matched"),
+                        triggered = event.getBoolean("triggered"),
+                        matchDetails = event.optString("matchDetails", "")
+                    )
                 )
-            )
+            }
         }
+
+        // Update stored events to remove expired ones
+        if (filteredEvents.length() != events.length()) {
+            prefs.edit().putString(KEY_EVENTS, filteredEvents.toString()).apply()
+        }
+
         return result
     }
 

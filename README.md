@@ -24,20 +24,66 @@ Break through silent mode for important calls and notifications on Android.
   - Configurable retention (1 hour to 7 days)
   - Enable/disable logging for privacy
 
-## How It Works
+## How Filtering Works
 
-1. **Simple String Matching**: Enter text patterns (one per line) to match against
-   - Text is normalized to lowercase alphanumeric only
-   - Spaces and special characters are ignored
-   - Example: "John Smith" app matches search "nsmi"
+### Text Matching Rules
+- **Normalization**: All text (both filters and content) is converted to lowercase, alphanumeric only
+- **Spaces/punctuation ignored**: "John Smith" becomes "johnsmith", "(555) 123-4567" becomes "5551234567"
+- **Partial matching**: Filter "nsmi" matches "johnsmith" (contains substring)
 
-2. **Multiple Filters = OR Logic**:
-   - Each line in a filter box is a separate pattern
-   - If ANY pattern matches, the alert triggers
+### Multiple Line Filters (OR Logic)
+Each text box accepts multiple filters, one per line. These are OR'd together:
 
-3. **App + Content Matching**:
-   - Can require BOTH app name AND content to match
-   - Or trigger on EITHER app name OR content match
+**Phone Numbers Example:**
+```
+555           # Matches any number with "555"
+212           # OR any number with "212"
+8005551234    # OR this specific number
+```
+
+**App Names Example:**
+```
+slack         # Matches Slack app
+whats         # OR WhatsApp (partial match)
+teams         # OR Microsoft Teams
+nsmi          # OR any app with "nsmi" in name (e.g., "John Smith")
+```
+
+**Notification Content Example:**
+```
+urgent        # Matches notifications with "urgent"
+prod          # OR "production" (partial match)
+down          # OR "down", "shutdown", etc.
+emergency     # OR "emergency"
+```
+
+### Combining App and Content Filters
+
+- **Default (Require BOTH unchecked)**:
+  - Triggers if ANY app filter matches OR ANY content filter matches
+  - Example: Will alert for ALL Slack notifications OR any app with "urgent" in content
+
+- **Require BOTH checked**:
+  - Triggers only if AT LEAST ONE app filter AND AT LEAST ONE content filter match
+  - Example: Only alerts for Slack notifications that also contain "urgent"
+
+### Examples
+
+**Example 1: Monitor specific apps**
+- App filters: `slack`, `teams`
+- Content filters: (empty)
+- Result: Alerts for ALL Slack and Teams notifications
+
+**Example 2: Keyword monitoring across all apps**
+- App filters: (empty)
+- Content filters: `server`, `down`, `critical`
+- Result: Alerts for ANY app with these keywords
+
+**Example 3: Specific app + keyword**
+- App filters: `slack`
+- Content filters: `prod`, `urgent`
+- Require BOTH: ✓
+- Result: Only Slack messages containing "prod" or "urgent"
 
 ## Installation
 
