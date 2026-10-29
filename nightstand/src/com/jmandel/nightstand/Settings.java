@@ -19,6 +19,8 @@ class Settings {
     int startVolume() { return p.getInt("start_volume", 2); }
     int maxVolumePct() { return p.getInt("max_volume_pct", 20); }
     int minMinutesLeft() { return p.getInt("min_minutes_left", 15); }
+    /** The screensaver that was set before Nightstand took over. */
+    String previousScreensaver(String fallback) { return p.getString("previous_screensaver", fallback); }
     int skipSeconds() { return p.getInt("skip_seconds", 30); }
 
     void put(String key, boolean v) { p.edit().putBoolean(key, v).apply(); }

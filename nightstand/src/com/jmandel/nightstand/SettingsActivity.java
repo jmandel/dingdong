@@ -37,9 +37,13 @@ import java.util.function.IntFunction;
 public class SettingsActivity extends Activity {
     private static final String DREAM =
             new ComponentName("com.jmandel.nightstand", NightDream.class.getName()).flattenToShortString();
+    /** Pixel's stock clock screensaver, put back when Nightstand is switched off if nothing else was saved. */
+    private static final String PIXEL_CLOCK =
+            "com.google.assistant.hubui/com.google.assistant.hubui.dream.EverydayClockDreamService";
 
     private Settings settings;
     private LinearLayout root, checklist;
+    private Switch useDream, autoPlay;
     private int pad;
 
     @Override
@@ -60,12 +64,12 @@ public class SettingsActivity extends Activity {
                 + "back, drag sideways for volume, long-press to leave. Never plays out loud, never vibrates.", 14, false);
 
         heading("Behavior");
-        Switch auto = new Switch(this);
-        auto.setText("Start the podcast when the headphones connect");
-        auto.setTextSize(16);
-        auto.setChecked(settings.autoStart());
-        auto.setOnCheckedChangeListener((b, on) -> settings.put("auto_start", on));
-        root.addView(auto);
+        useDream = toggle("Nightstand screensaver",
+                "When off, the phone goes back to Android's usual clock.",
+                false, on -> { if (on != isScreensaver()) setScreensaver(on); });
+        autoPlay = toggle("Auto-play",
+                "While the screensaver is showing, start the podcast when your headphones connect.",
+                settings.autoStart(), on -> settings.put("auto_start", on));
 
         heading("Headphones");
         headphonePicker();
@@ -100,6 +104,51 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        refreshChecklist();
+    }
+
+    /** Auto-play only happens inside the screensaver, so it's greyed out without it. */
+    private void refreshSwitches() {
+        boolean on = isScreensaver();
+        useDream.setChecked(on);
+        autoPlay.setEnabled(on);
+        ((View) autoPlay.getParent()).setEnabled(on);
+        ((View) autoPlay.getParent()).setAlpha(on ? 1f : 0.4f);
+    }
+
+    private boolean canWriteSecure() {
+        return checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean isScreensaver() {
+        String dream = readSecure("screensaver_components");
+        return dream != null && dream.contains(DREAM) && "1".equals(readSecure("screensaver_enabled"));
+    }
+
+    /**
+     * Switches between Nightstand and whatever screensaver was set before it
+     * (Pixel's clock if unknown), along with the dark-room clock that Pixel
+     * would otherwise swap in over Nightstand. Without permission to change
+     * settings directly, opens the system screensaver settings instead.
+     */
+    private void setScreensaver(boolean on) {
+        if (!canWriteSecure()) {
+            startActivity(new Intent(android.provider.Settings.ACTION_DREAM_SETTINGS));
+            return;
+        }
+        android.content.ContentResolver cr = getContentResolver();
+        if (on) {
+            String current = readSecure("screensaver_components");
+            if (current != null && !current.isEmpty() && !current.contains(DREAM)) {
+                settings.put("previous_screensaver", current);
+            }
+            Secure.putString(cr, "screensaver_components", DREAM);
+            Secure.putInt(cr, "screensaver_enabled", 1);
+            Secure.putInt(cr, "low_light_display_behavior_enabled", 0);
+        } else {
+            Secure.putString(cr, "screensaver_components", settings.previousScreensaver(PIXEL_CLOCK));
+            Secure.putInt(cr, "low_light_display_behavior_enabled", 1);
+        }
         refreshChecklist();
     }
 
@@ -187,39 +236,29 @@ public class SettingsActivity extends Activity {
     // --- Setup checklist ---------------------------------------------------
 
     private void refreshChecklist() {
+        refreshSwitches();
         checklist.removeAllViews();
-        boolean canWrite = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS)
-                == PackageManager.PERMISSION_GRANTED;
+        boolean canWrite = canWriteSecure();
 
-        String dream = readSecure("screensaver_components");
-        boolean isDream = dream != null && dream.contains(DREAM)
-                && "1".equals(readSecure("screensaver_enabled"));
-        check(isDream, "Nightstand is your screensaver",
-                dream == null ? "Can't tell whether Nightstand is your screensaver"
-                        : "Nightstand isn't your screensaver",
-                null, "Make it the screensaver", () -> {
-                    if (canWrite) {
-                        Secure.putString(getContentResolver(), "screensaver_components", DREAM);
-                        Secure.putInt(getContentResolver(), "screensaver_enabled", 1);
-                        refreshChecklist();
-                    } else {
-                        startActivity(new Intent(android.provider.Settings.ACTION_DREAM_SETTINGS));
-                    }
-                });
-
-        // Android hides this setting from apps, so it can't be checked; with
-        // permission to write it, just make sure it's off every time.
-        String lowLight = readSecure("low_light_display_behavior_enabled");
-        if (!"0".equals(lowLight) && canWrite) {
-            Secure.putInt(getContentResolver(), "low_light_display_behavior_enabled", 0);
-            lowLight = "0";
+        if (isScreensaver()) {
+            check(true, "Nightstand is your screensaver", null, null, null, null);
+            // Android hides this setting from apps, so it can't be checked; with
+            // permission to write it, just make sure it's off every time.
+            String lowLight = readSecure("low_light_display_behavior_enabled");
+            if (!"0".equals(lowLight) && canWrite) {
+                Secure.putInt(getContentResolver(), "low_light_display_behavior_enabled", 0);
+                lowLight = "0";
+            }
+            check("0".equals(lowLight), "Nightstand shows in the dark too",
+                    lowLight == null ? "Pixel's dark-room clock may replace Nightstand"
+                            : "In a dark room, Pixel's own clock replaces Nightstand",
+                    "Then Nightstand never starts at night. Fix it with the adb grant below, "
+                            + "or turn off the low-light clock in screen saver settings.",
+                    null, null);
+        } else {
+            check(false, null, "Nightstand isn't your screensaver",
+                    "Turn on \"Use Nightstand as the screensaver\" above.", null, null);
         }
-        check("0".equals(lowLight), "Nightstand shows in the dark too",
-                lowLight == null ? "Pixel's dark-room clock may replace Nightstand"
-                        : "In a dark room, Pixel's own clock replaces Nightstand",
-                "Then Nightstand never starts at night. Fix it with the adb grant below, "
-                        + "or turn off the low-light clock in screen saver settings.",
-                null, null);
 
         boolean files = Environment.isExternalStorageManager();
         check(files, "Can read AntennaPod's export", "Can't read AntennaPod's export",
@@ -283,6 +322,27 @@ public class SettingsActivity extends Activity {
     }
 
     // --- Little view helpers -----------------------------------------------
+
+    /** A setting row: title over a dimmer one-line explanation, switch on the right. */
+    private Switch toggle(String title, String summary, boolean checked,
+                          java.util.function.Consumer<Boolean> onChange) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, pad / 2, 0, pad / 2);
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
+        text(title, 16, false, words);
+        text(summary, 13, false, words).setAlpha(0.6f);
+        row.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        Switch sw = new Switch(this);
+        sw.setChecked(checked);
+        sw.setOnCheckedChangeListener((b, on) -> onChange.accept(on));
+        row.addView(sw);
+        row.setOnClickListener(v -> sw.toggle());
+        root.addView(row);
+        return sw;
+    }
 
     private void heading(String s) {
         TextView t = text(s, 18, true);

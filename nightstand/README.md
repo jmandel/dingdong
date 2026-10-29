@@ -21,9 +21,11 @@ The screen shows a dim red clock that drifts slowly to avoid burn-in, plus the
 current episode.
 
 Everything is configurable in the **Nightstand** app (also the gear next to it
-in Screen saver settings): auto-start on/off, which headphones, which podcast,
+in Screen saver settings): a switch between Nightstand and Android's usual
+clock screensaver, auto-start on/off, which headphones, which podcast,
 starting and maximum volume, minimum time left, skip length, and a setup
-checklist that can fix the screensaver and low-light settings itself.
+checklist. Switching Nightstand off puts back the previous screensaver and
+Pixel's low-light clock.
 
 ## Safety
 
