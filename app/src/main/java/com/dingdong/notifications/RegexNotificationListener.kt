@@ -17,6 +17,9 @@ class RegexNotificationListener : NotificationListenerService() {
 
   override fun onNotificationPosted(sbn: StatusBarNotification) {
     val n: Notification = sbn.notification ?: return
+    // Ongoing notifications (media playback, downloads) update constantly and
+    // were flooding the event log; they're never alerts anyway.
+    if (sbn.isOngoing) return
     val extras = n.extras
     val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
     val text  = extras?.getCharSequence(Notification.EXTRA_TEXT )?.toString().orEmpty()

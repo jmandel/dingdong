@@ -14,6 +14,7 @@ class AudioControllerMediaOnly(private val ctx: Context) {
   private val am = ctx.getSystemService(AudioManager::class.java)
 
   private var savedMusicVol: Int = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+  private val savedMute: Boolean = am.isStreamMute(AudioManager.STREAM_MUSIC)
   private var focus: AudioFocusRequest? = null
   private var wake: PowerManager.WakeLock? = null
 
@@ -33,7 +34,12 @@ class AudioControllerMediaOnly(private val ctx: Context) {
     val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
     val minVolumePercent = targetMinPercent ?: RegexStore.getMinVolumePercent()
     val minTarget = max(1, (maxVol * (minVolumePercent / 100.0)).roundToInt())
-    if (am.getStreamVolume(AudioManager.STREAM_MUSIC) == 0) {
+    // Media is often turned down or muted at night; raise it to the floor so
+    // the alert is actually audible, not only when it sits at exactly zero.
+    if (am.isStreamMute(AudioManager.STREAM_MUSIC)) {
+      am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0)
+    }
+    if (am.getStreamVolume(AudioManager.STREAM_MUSIC) < minTarget) {
       am.setStreamVolume(AudioManager.STREAM_MUSIC, minTarget, 0)
     }
 
@@ -55,6 +61,7 @@ class AudioControllerMediaOnly(private val ctx: Context) {
       // Delay before restoring volume
       Thread.sleep(RegexStore.getVolumeRestoreDelay() * 1000L)
       am.setStreamVolume(AudioManager.STREAM_MUSIC, savedMusicVol, 0)
+      if (savedMute) am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
     }
     focus?.let { am.abandonAudioFocusRequest(it) }
     wake?.let { if (it.isHeld) it.release() }
