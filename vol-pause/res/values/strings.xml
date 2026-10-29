@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Volume Double-Tap Pause</string>
+    <string name="description">With the screen off, the phone charging, and audio playing, two quick volume-down presses pause playback and restore the volume. Volume keys otherwise work as usual.</string>
+</resources>

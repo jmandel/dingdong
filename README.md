@@ -129,6 +129,12 @@ Built with:
 - Material Design 3
 - 36 open-source notification sounds from akx/Notifications
 
+## Companion: Volume Double-Tap Pause
+
+[`vol-pause/`](vol-pause/) is a separate tiny app: on the charger with audio
+playing and the screen asleep or on the screensaver, double-press volume down
+to pause playback. See its README.
+
 ## License
 
 Open source - includes notification sounds from the akx/Notifications repository.
