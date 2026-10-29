@@ -23,25 +23,23 @@ import java.util.Set;
 /**
  * Nightstand screensaver for sleepless nights.
  *
- * While it's showing, turning on the Bose headphones starts the newest
- * unfinished Spilled Milk episode with at least 15 minutes left, through
- * them at a very low volume. Tap to pause or resume, double-tap to skip
- * ahead 30 s, triple-tap to go back 30 s, drag right/left to change volume
- * (capped at 20%), long-press to leave. Audio only ever starts when the Bose is the output, and pauses as
- * soon as it isn't.
+ * While it's showing, turning on the chosen headphones starts the newest
+ * unfinished episode of the chosen podcast (with enough left) through them at
+ * a very low volume. Tap to pause or resume, double-tap to skip ahead,
+ * triple-tap to go back, drag right/left to change volume (capped), long-press
+ * to leave. A new episode only ever starts in the headphones, and headphone
+ * playback pauses as soon as they stop being the output. Something already
+ * playing on the speaker keeps going and the gestures control it too.
+ * Options live in Settings / SettingsActivity.
  */
 public class NightDream extends DreamService {
     static final String TAG = Podcasts.TAG;
-    static final String HEADPHONES = "Bose";
-    static final String PODCAST = "Spilled Milk";
-    static final int START_VOLUME = 2;      // of 25 steps
-    static final int MAX_VOLUME_PCT = 20;
     static final float PX_PER_STEP = 60f;
-    static final long SKIP_MS = 30_000;
-    static final long MIN_LEFT_MS = 15 * 60_000;
     static final long TAP_WINDOW_MS = 350;
     static final long LONG_PRESS_MS = 800;
+    static final long SPEAKER_UNDO_MS = 60_000;
 
+    private Settings settings;
     private AudioManager audio;
     private Podcasts podcasts;
     private MediaController controller;
@@ -52,8 +50,8 @@ public class NightDream extends DreamService {
     private boolean dragging;
     private int taps;
     private float touchSlop;
-    private String lastMediaId;             // podcast episode last seen playing
-    private long lastPosition, lastDuration;
+    private boolean onHeadphones;           // playback belongs in the headphones; pause if they go
+    private long pausedOnSpeakerAt;         // when we paused speaker playback (0 = we didn't)
 
     private final AudioDeviceCallback deviceCallback = new AudioDeviceCallback() {
         @Override
@@ -62,8 +60,14 @@ public class NightDream extends DreamService {
             devicesSeen = true;
             if (initial) return;
             for (AudioDeviceInfo d : added) {
-                if (isBose(d)) {
-                    Log.i(TAG, "Bose connected: " + d.getProductName());
+                if (isHeadphones(d)) {
+                    Log.i(TAG, "headphones connected: " + d.getProductName());
+                    if (isPlaying()) {
+                        // Already playing (e.g. on the speaker): carry on, now in the headphones.
+                        onHeadphones = true;
+                        return;
+                    }
+                    if (!settings.autoStart()) return;
                     // Let the route settle before starting.
                     handler.postDelayed(() -> startListening(), 1500);
                     return;
@@ -74,8 +78,8 @@ public class NightDream extends DreamService {
         @Override
         public void onAudioDevicesRemoved(AudioDeviceInfo[] removed) {
             for (AudioDeviceInfo d : removed) {
-                if (isBose(d)) {
-                    Log.i(TAG, "Bose disconnected");
+                if (isHeadphones(d)) {
+                    Log.i(TAG, "headphones disconnected");
                     pause();
                 }
             }
@@ -86,10 +90,11 @@ public class NightDream extends DreamService {
     private final Runnable guard = new Runnable() {
         @Override
         public void run() {
-            if (isPlaying() && !boseIsOutput()) {
-                Log.w(TAG, "playing but Bose isn't the output; pausing");
+            if (isPlaying() && onHeadphones && !headphonesAreOutput()) {
+                Log.w(TAG, "headphones playback lost its route; pausing");
                 pause();
             }
+            if (isPlaying()) trackProgress();
             handler.postDelayed(this, 2000);
         }
     };
@@ -100,6 +105,7 @@ public class NightDream extends DreamService {
         setInteractive(true);
         setFullscreen(true);
         setScreenBright(false);
+        settings = new Settings(this);
         audio = getSystemService(AudioManager.class);
         podcasts = new Podcasts(this);
         view = new NightView(this);
@@ -111,10 +117,14 @@ public class NightDream extends DreamService {
     @Override
     public void onDreamingStarted() {
         super.onDreamingStarted();
+        settings = new Settings(this);  // re-read each time, in case they changed
         devicesSeen = false;
+        onHeadphones = false;
+        pausedOnSpeakerAt = 0;
         audio.registerAudioDeviceCallback(deviceCallback, handler);
         podcasts.connect(c -> {
             controller = c;
+            onHeadphones = isPlaying() && headphonesAreOutput();
             controller.registerCallback(new MediaController.Callback() {
                 @Override
                 public void onPlaybackStateChanged(PlaybackState state) { trackProgress(); refresh(); }
@@ -151,19 +161,19 @@ public class NightDream extends DreamService {
         }
     }
 
-    private static boolean isBose(AudioDeviceInfo d) {
-        return isBluetooth(d) && String.valueOf(d.getProductName()).contains(HEADPHONES);
+    private boolean isHeadphones(AudioDeviceInfo d) {
+        return isBluetooth(d) && String.valueOf(d.getProductName()).contains(settings.headphones());
     }
 
-    /** True only when the Bose is connected for media and no other Bluetooth output is. */
-    private boolean boseIsOutput() {
-        boolean bose = false;
+    /** True only when the chosen headphones are connected for media and no other Bluetooth output is. */
+    private boolean headphonesAreOutput() {
+        boolean found = false;
         for (AudioDeviceInfo d : audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
             if (!isBluetooth(d)) continue;
-            if (isBose(d)) bose = true;
+            if (isHeadphones(d)) found = true;
             else return false;
         }
-        return bose;
+        return found;
     }
 
     // --- Playback --------------------------------------------------------
@@ -176,20 +186,35 @@ public class NightDream extends DreamService {
     private boolean currentIsPodcast() {
         MediaMetadata m = controller == null ? null : controller.getMetadata();
         if (m == null) return false;
-        return PODCAST.equals(m.getString(MediaMetadata.METADATA_KEY_ALBUM))
-                || PODCAST.equals(m.getString(MediaMetadata.METADATA_KEY_ARTIST))
-                || String.valueOf(m.getDescription().getSubtitle()).contains(PODCAST);
+        String podcast = settings.podcast();
+        return podcast.equals(m.getString(MediaMetadata.METADATA_KEY_ALBUM))
+                || podcast.equals(m.getString(MediaMetadata.METADATA_KEY_ARTIST))
+                || String.valueOf(m.getDescription().getSubtitle()).contains(podcast);
     }
 
+    /**
+     * Pauses whatever's playing. Resuming or starting needs the headphones,
+     * except that something we paused on the speaker may resume there within a
+     * minute, as a quick undo. After that a stray tap must not fill the room.
+     */
     private void togglePlay() {
         if (isPlaying()) {
+            pausedOnSpeakerAt = headphonesAreOutput() ? 0 : SystemClock.elapsedRealtime();
             pause();
-        } else if (controller != null && currentIsPodcast()) {
-            if (!boseIsOutput()) { refuse(); return; }
-            clampVolume();
+        } else if (headphonesAreOutput()) {
+            if (controller != null && currentIsPodcast()) {
+                clampVolume();
+                onHeadphones = true;
+                controller.getTransportControls().play();
+            } else {
+                startListening();
+            }
+        } else if (pausedOnSpeakerAt != 0 && controller != null
+                && SystemClock.elapsedRealtime() - pausedOnSpeakerAt <= SPEAKER_UNDO_MS) {
+            pausedOnSpeakerAt = 0;
             controller.getTransportControls().play();
         } else {
-            startListening();
+            refuse();
         }
     }
 
@@ -202,9 +227,7 @@ public class NightDream extends DreamService {
     private void skip(long deltaMs) {
         PlaybackState s = controller == null ? null : controller.getPlaybackState();
         if (s == null || s.getState() != PlaybackState.STATE_PLAYING) return;
-        long elapsed = SystemClock.elapsedRealtime() - s.getLastPositionUpdateTime();
-        long pos = s.getPosition() + (long) (elapsed * s.getPlaybackSpeed());
-        controller.getTransportControls().seekTo(Math.max(0, pos + deltaMs));
+        controller.getTransportControls().seekTo(Math.max(0, position(s) + deltaMs));
     }
 
     // --- Touch -----------------------------------------------------------
@@ -217,8 +240,8 @@ public class NightDream extends DreamService {
         taps = 0;
         Log.i(TAG, n + " tap(s)");
         if (n == 1) togglePlay();
-        else if (n == 2) skip(SKIP_MS);
-        else if (n >= 3) skip(-SKIP_MS);
+        else if (n == 2) skip(settings.skipSeconds() * 1000L);
+        else if (n >= 3) skip(-settings.skipSeconds() * 1000L);
     };
     private final Runnable longPress = this::finish;
 
@@ -270,17 +293,17 @@ public class NightDream extends DreamService {
      * in-progress one resumes where it left off.
      */
     private void startListening() {
-        if (!boseIsOutput()) { refuse(); return; }
+        if (!headphonesAreOutput()) { refuse(); return; }
         podcasts.connect(c -> {
             controller = c;
             podcasts.children("subscriptions", feeds -> {
                 for (MediaBrowser.MediaItem f : feeds) {
-                    if (PODCAST.contentEquals(String.valueOf(f.getDescription().getTitle()))) {
+                    if (settings.podcast().contentEquals(String.valueOf(f.getDescription().getTitle()))) {
                         podcasts.children(f.getMediaId(), this::playNewestUnfinished);
                         return;
                     }
                 }
-                Log.w(TAG, "no subscription named " + PODCAST);
+                Log.w(TAG, "no subscription named " + settings.podcast());
                 refuse();
             });
         });
@@ -290,7 +313,7 @@ public class NightDream extends DreamService {
         // AntennaPod's state comes from its database export (slow-ish to read);
         // Nightstand's own record covers listening since that export.
         new Thread(() -> {
-            Map<String, AntennaPodExport.Episode> exported = AntennaPodExport.episodes(PODCAST);
+            Map<String, AntennaPodExport.Episode> exported = AntennaPodExport.episodes(settings.podcast());
             handler.post(() -> {
                 for (MediaBrowser.MediaItem it : episodes) {  // newest first
                     if (it.isPlayable() && worthPlaying(it.getMediaId(), exported.get(it.getMediaId()))) {
@@ -304,43 +327,55 @@ public class NightDream extends DreamService {
         }).start();
     }
 
-    /** Unfinished, with at least MIN_LEFT_MS to go from the furthest known position. */
+    /** Unfinished, with at least the configured minutes to go from the furthest known position. */
     private boolean worthPlaying(String id, AntennaPodExport.Episode e) {
         SharedPreferences h = history();
         if (h.getStringSet("finished", new HashSet<>()).contains(id)) return false;
         if (e != null && e.played) return false;
         long duration = Math.max(e == null ? 0 : e.duration, h.getLong("dur:" + id, 0));
         long position = Math.max(e == null ? 0 : e.position, h.getLong("pos:" + id, 0));
-        return duration <= 0 || duration - position >= MIN_LEFT_MS;
+        return duration <= 0 || duration - position >= settings.minMinutesLeft() * 60_000L;
     }
 
     private void play(MediaBrowser.MediaItem it) {
-        if (!boseIsOutput()) { refuse(); return; }  // route may have changed while browsing
+        if (!headphonesAreOutput()) { refuse(); return; }  // route may have changed while browsing
         Log.i(TAG, "playing " + it.getMediaId() + " " + it.getDescription().getTitle());
-        audio.setStreamVolume(AudioManager.STREAM_MUSIC, START_VOLUME, 0);
+        onHeadphones = true;
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, Math.min(settings.startVolume(), maxVolume()), 0);
         controller.getTransportControls().playFromMediaId(it.getMediaId(), null);
     }
 
-    /** Remembers an episode of ours that reached (nearly) its end when playback moves on. */
+    /**
+     * Records the current podcast episode's position, and marks it finished
+     * once it gets within 90 s of the end. Runs on every playback change and
+     * from the 2 s guard, because AntennaPod sends nothing useful when an
+     * episode simply runs out: the session just stops or goes away.
+     */
     private void trackProgress() {
         MediaMetadata m = controller == null ? null : controller.getMetadata();
         PlaybackState s = controller == null ? null : controller.getPlaybackState();
         String id = m == null ? null : m.getString(MediaMetadata.METADATA_KEY_MEDIA_ID);
-        if (lastMediaId != null && !lastMediaId.equals(id)
-                && lastDuration > 0 && lastPosition >= lastDuration - 90_000) {
-            Set<String> finished = new HashSet<>(history().getStringSet("finished", new HashSet<>()));
-            finished.add(lastMediaId);
-            history().edit().putStringSet("finished", finished).apply();
-            Log.i(TAG, "finished " + lastMediaId);
+        if (id == null || s == null || !currentIsPodcast()) return;
+        long pos = position(s);
+        long dur = m.getLong(MediaMetadata.METADATA_KEY_DURATION);
+        if (dur <= 0) dur = history().getLong("dur:" + id, 0);
+        if (pos <= 0 && s.getState() != PlaybackState.STATE_PLAYING) return;  // reset after the end
+        SharedPreferences.Editor e = history().edit().putLong("pos:" + id, pos).putLong("dur:" + id, dur);
+        Set<String> finished = history().getStringSet("finished", new HashSet<>());
+        if (dur > 0 && pos >= dur - 90_000 && !finished.contains(id)) {
+            finished = new HashSet<>(finished);
+            finished.add(id);
+            e.putStringSet("finished", finished);
+            Log.i(TAG, "finished " + id);
         }
-        if (id != null && currentIsPodcast()) {
-            lastMediaId = id;
-            lastDuration = m.getLong(MediaMetadata.METADATA_KEY_DURATION);
-            if (s != null) lastPosition = s.getPosition();
-            history().edit().putLong("pos:" + id, lastPosition).putLong("dur:" + id, lastDuration).apply();
-        } else {
-            lastMediaId = null;
-        }
+        e.apply();
+    }
+
+    /** The current position, extrapolated from the last update while playing. */
+    private static long position(PlaybackState s) {
+        if (s.getState() != PlaybackState.STATE_PLAYING) return s.getPosition();
+        long elapsed = SystemClock.elapsedRealtime() - s.getLastPositionUpdateTime();
+        return s.getPosition() + (long) (elapsed * s.getPlaybackSpeed());
     }
 
     private SharedPreferences history() {
@@ -351,7 +386,7 @@ public class NightDream extends DreamService {
 
     private int maxVolume() {
         int max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        return Math.max(1, Math.round(max * MAX_VOLUME_PCT / 100f));
+        return Math.max(1, Math.round(max * settings.maxVolumePct() / 100f));
     }
 
     private void clampVolume() {
@@ -360,13 +395,10 @@ public class NightDream extends DreamService {
         if (v == 0) audio.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
     }
 
+    /** Down always works; up never passes the cap (and does nothing if already above it). */
     private void stepVolume(int dir) {
-        if (!boseIsOutput()) {  // never adjust (or unmute) the speaker from here
-            Log.i(TAG, "volume step ignored: Bose isn't the output");
-            return;
-        }
         int v = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
-        int next = Math.max(1, Math.min(maxVolume(), v + dir));
+        int next = dir > 0 ? Math.min(v + 1, Math.max(v, maxVolume())) : Math.max(1, v - 1);
         Log.i(TAG, "volume " + v + " -> " + next);
         if (next != v) {
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, next, 0);
@@ -386,7 +418,7 @@ public class NightDream extends DreamService {
         view.setStatus(line);
     }
 
-    /** Refused, e.g. the Bose isn't connected. No vibration, ever: it should stay silent. */
+    /** Refused, e.g. the headphones aren't connected. No vibration, ever: it should stay silent. */
     private void refuse() {
         Log.i(TAG, "refused");
     }

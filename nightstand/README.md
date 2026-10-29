@@ -12,15 +12,26 @@ very low volume. No buttons to press, nothing out loud, no vibration.
 - **Long-press:** leave the screensaver.
 - **Turn off the Bose:** pauses.
 
+If a podcast is already playing on the speaker when the screensaver starts,
+it keeps playing and the gestures control it too. A tap pauses it; tapping
+again resumes it on the speaker only within a minute (a quick undo), so a
+stray tap later in the night can't fill the room.
+
 The screen shows a dim red clock that drifts slowly to avoid burn-in, plus the
 current episode.
 
+Everything is configurable in the **Nightstand** app (also the gear next to it
+in Screen saver settings): auto-start on/off, which headphones, which podcast,
+starting and maximum volume, minimum time left, skip length, and a setup
+checklist that can fix the screensaver and low-light settings itself.
+
 ## Safety
 
-Audio only starts, resumes, or changes volume when the Bose is the Bluetooth
-media output and no other Bluetooth output is connected. If that stops being
-true while playing (headphones off, route change), it pauses at once; a guard
-re-checks every 2 s as well. Dragging never raises the volume past 20%.
+A new episode only starts, and headphone playback only resumes, when the
+chosen headphones are the Bluetooth media output and no other Bluetooth
+output is connected. If headphone playback loses that route (headphones off,
+route change) it pauses at once; a guard re-checks every 2 s as well.
+Dragging up never passes the volume cap, on any output. Nothing vibrates.
 
 ## How it works
 
@@ -37,8 +48,8 @@ re-checks every 2 s as well. Dragging never raises the volume past 20%.
   sideways drag because the system takes vertical swipes over a screensaver
   (swipe up to unlock, down for the shade).
 
-Names (`Bose`, `Spilled Milk`) and limits are constants at the top of
-`NightDream`.
+Settings live in `Settings` (SharedPreferences) and are re-read each time the
+screensaver starts.
 
 ## Build and set up
 
@@ -54,6 +65,9 @@ adb shell appops set com.jmandel.nightstand MANAGE_EXTERNAL_STORAGE allow
 adb shell settings put secure screensaver_components com.jmandel.nightstand/.NightDream
 # Pixels swap in a "low-light clock" instead of the screensaver in a dark room; turn that off:
 adb shell settings put secure low_light_display_behavior_enabled 0
+# Let the settings screen list paired headphones and fix the two settings above itself:
+adb shell pm grant com.jmandel.nightstand android.permission.BLUETOOTH_CONNECT
+adb shell pm grant com.jmandel.nightstand android.permission.WRITE_SECURE_SETTINGS
 ```
 
 Logs go to logcat under the `Nightstand` tag. To inspect what AntennaPod

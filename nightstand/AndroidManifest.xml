@@ -6,12 +6,28 @@
     <!-- Read AntennaPod's database export in Documents; grant via
          adb shell appops set com.jmandel.nightstand MANAGE_EXTERNAL_STORAGE allow -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- List paired headphones in settings. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Optional: lets the setup checklist fix the screensaver/low-light settings itself;
+         adb shell pm grant com.jmandel.nightstand android.permission.WRITE_SECURE_SETTINGS -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <queries>
         <package android:name="de.danoeh.antennapod" />
     </queries>
 
-    <application android:label="@string/app_name" android:allowBackup="false">
+    <application
+        android:label="@string/app_name"
+        android:icon="@android:drawable/ic_lock_idle_alarm"
+        android:theme="@android:style/Theme.DeviceDefault"
+        android:allowBackup="false">
+        <activity android:name=".SettingsActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".NightDream"
             android:exported="true"
@@ -21,6 +37,7 @@
                 <action android:name="android.service.dreams.DreamService" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <meta-data android:name="android.service.dream" android:resource="@xml/dream" />
         </service>
 
         <!-- Debug hook: adb shell am broadcast -n com.jmandel.nightstand/.DebugReceiver -a dump -->

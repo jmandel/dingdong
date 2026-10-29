@@ -63,7 +63,7 @@ class AntennaPodExport {
         return out;
     }
 
-    private static File latestExport() {
+    static File latestExport() {
         File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
         File[] files = dir.listFiles((d, name) -> name.startsWith("AntennaPodBackup") && name.endsWith(".db"));
         File best = null;
