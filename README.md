@@ -135,6 +135,13 @@ Built with:
 playing and the screen asleep or on the screensaver, double-press volume down
 to pause playback. See its README.
 
+## Companion: Nightstand
+
+[`nightstand/`](nightstand/) is a screensaver for sleepless nights: turn on the
+Bose headphones and the newest unfinished Spilled Milk episode starts quietly
+through them; tap to pause, double/triple-tap to skip ±30 s, drag sideways for
+volume (capped at 20%). See its README.
+
 ## License
 
 Open source - includes notification sounds from the akx/Notifications repository.

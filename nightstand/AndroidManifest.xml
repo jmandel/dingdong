@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.jmandel.nightstand">
+
+    <uses-sdk android:minSdkVersion="33" android:targetSdkVersion="36" />
+    <!-- Read AntennaPod's database export in Documents; grant via
+         adb shell appops set com.jmandel.nightstand MANAGE_EXTERNAL_STORAGE allow -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+    <queries>
+        <package android:name="de.danoeh.antennapod" />
+    </queries>
+
+    <application android:label="@string/app_name" android:allowBackup="false">
+        <service
+            android:name=".NightDream"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- Debug hook: adb shell am broadcast -n com.jmandel.nightstand/.DebugReceiver -a dump -->
+        <receiver android:name=".DebugReceiver" android:exported="true" />
+    </application>
+</manifest>
