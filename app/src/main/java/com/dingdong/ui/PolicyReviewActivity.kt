@@ -16,7 +16,7 @@ import com.dingdong.data.PolicyStore
 /**
  * Shows what a proposed policy would change, in plain English, and applies it
  * only on Accept. Opened with pasted text, or from a link:
- * https://config.joshuamandel.com/dingdong#<urlencoded JSON> (or ?json=),
+ * https://dingdong.config.joshuamandel.com/dingdong#<urlencoded JSON> (or ?json=),
  * or dingdong://policy?json=<urlencoded JSON>.
  */
 class PolicyReviewActivity : Activity() {

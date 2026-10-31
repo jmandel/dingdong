@@ -39,7 +39,7 @@ you can work on it as text:
   every field, an example, and your current settings. Paste it into any AI chat
   app and say what you want.
 - The AI replies with a link,
-  `https://config.joshuamandel.com/nightstand#<url-encoded JSON>`, and the
+  `https://nightstand.config.joshuamandel.com/nightstand#<url-encoded JSON>`, and the
   same JSON as a code block. Tapping the link opens Nightstand. Copying the
   reply and returning to Nightstand also works.
 - Either way Nightstand lists the changes in plain English and applies them
@@ -50,8 +50,12 @@ The link host isn't domain-verified (nothing is hosted there; the JSON stays in
 the URL fragment, which browsers don't send). Approve it once per install:
 
 ```bash
-adb shell pm set-app-links-user-selection --user 0 --package com.jmandel.nightstand true config.joshuamandel.com
+adb shell pm set-app-links-user-selection --user 0 --package com.jmandel.nightstand true nightstand.config.joshuamandel.com
 ```
+
+Android lets only one app claim an unverified domain, so each app has its own
+host (DingDong uses another), and the approval can reset when the app is updated.
+
 
 ## Safety
 

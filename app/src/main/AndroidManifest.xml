@@ -43,7 +43,7 @@
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
         <data android:scheme="https" />
-        <data android:host="config.joshuamandel.com" />
+        <data android:host="dingdong.config.joshuamandel.com" />
         <data android:pathPrefix="/dingdong" />
       </intent-filter>
     </activity>

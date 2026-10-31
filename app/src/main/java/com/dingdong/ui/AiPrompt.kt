@@ -5,7 +5,7 @@ import com.dingdong.media.SoundManager
 
 /** The self-contained prompt copied for an AI chat app: what DingDong is, the format, the current policy. */
 object AiPrompt {
-  const val LINK_BASE = "https://config.joshuamandel.com/dingdong"
+  const val LINK_BASE = "https://dingdong.config.joshuamandel.com/dingdong"
 
   fun build(current: Policy): String = """
 You're helping me configure DingDong, an Android app that plays a loud alert sound for the notifications and phone calls that matter to me, even when my phone is quiet. Its whole configuration is the JSON "policy" below.

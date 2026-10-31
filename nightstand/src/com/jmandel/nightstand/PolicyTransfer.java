@@ -11,13 +11,13 @@ import java.util.regex.Pattern;
  * finding a proposed policy in whatever text comes back (a bare JSON object,
  * a ```json block inside a reply, or a link).
  *
- * Links look like https://config.joshuamandel.com/nightstand#<url-encoded JSON>.
+ * Links look like https://nightstand.config.joshuamandel.com/nightstand#<url-encoded JSON>.
  * The app claims that host without domain verification (approved once with
  * {@code pm set-app-links-user-selection}); the JSON rides in the fragment,
  * which browsers never send to the server.
  */
 final class PolicyTransfer {
-    static final String LINK = "https://config.joshuamandel.com/nightstand";
+    static final String LINK = "https://nightstand.config.joshuamandel.com/nightstand";
 
     private PolicyTransfer() {}
 

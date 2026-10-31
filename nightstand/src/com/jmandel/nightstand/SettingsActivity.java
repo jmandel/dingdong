@@ -139,7 +139,7 @@ public class SettingsActivity extends Activity {
         reviewLink(intent);
     }
 
-    /** Opened from a config.joshuamandel.com/nightstand link: review the policy it carries. */
+    /** Opened from a nightstand.config.joshuamandel.com/nightstand link: review the policy it carries. */
     private void reviewLink(Intent intent) {
         if (intent == null || intent.getData() == null) return;
         JSONObject o = PolicyTransfer.fromLink(intent.getData());

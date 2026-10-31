@@ -33,7 +33,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="config.joshuamandel.com" android:pathPrefix="/nightstand" />
+                <data android:scheme="https" android:host="nightstand.config.joshuamandel.com" android:pathPrefix="/nightstand" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

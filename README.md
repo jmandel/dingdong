@@ -73,13 +73,17 @@ Upgrading from the old text-box filters converts them to rules automatically.
 4. The review screen lists every change in plain English. Nothing changes
    until you tap **Accept**; invalid policies are rejected with the reason.
 
-Links look like `https://config.joshuamandel.com/dingdong#<URL-encoded JSON>`
+Links look like `https://dingdong.config.joshuamandel.com/dingdong#<URL-encoded JSON>`
 (`?json=` also works, as does `dingdong://policy?json=...`). The domain isn't
 verified, so approve it once on the phone:
 
 ```bash
-adb shell pm set-app-links-user-selection --user 0 --package com.dingdong true config.joshuamandel.com
+adb shell pm set-app-links-user-selection --user 0 --package com.dingdong true dingdong.config.joshuamandel.com
 ```
+
+Android lets only one app claim an unverified domain, so each app has its own
+host (Nightstand uses another), and the approval can reset when the app is updated.
+
 
 ## Installation
 
