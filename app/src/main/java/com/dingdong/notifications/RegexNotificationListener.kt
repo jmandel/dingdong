@@ -21,6 +21,11 @@ class RegexNotificationListener : NotificationListenerService() {
     // were flooding the event log; they're never alerts anyway.
     if (sbn.isOngoing) return
     val extras = n.extras
+    // Paused media players aren't ongoing but still repost on every change.
+    if (extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true) return
+    // Group summaries ("Most recent from: Carrie") repeat the message they
+    // summarize; matching them too would sound a second alert.
+    if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
     val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
     val text  = extras?.getCharSequence(Notification.EXTRA_TEXT )?.toString().orEmpty()
     val big   = extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
@@ -28,7 +33,7 @@ class RegexNotificationListener : NotificationListenerService() {
 
     val appDisplayName = getAppDisplayName(sbn.packageName)
 
-    val matched = content.isNotBlank() && RegexStore.notificationMatches(sbn.packageName, appDisplayName, content)
+    val matched = content.isNotBlank() && RegexStore.notificationMatches(sbn.packageName, appDisplayName, content, title)
     val triggered = matched
 
     // Log the event

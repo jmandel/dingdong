@@ -22,7 +22,14 @@ object RegexStore {
 
   @Volatile var phoneNumberPatterns: List<String> = listOf()
   @Volatile var appNamePatterns: List<String> = listOf()
-  @Volatile var contentPatterns: List<String> = listOf()
+  /**
+   * Each line is a list of parts joined by "&"; a line matches when every part
+   * appears. A part starting "from:" must appear in the notification title,
+   * which messaging apps set to the sender (or "Group: Sender").
+   */
+  @Volatile var contentPatterns: List<List<ContentPart>> = listOf()
+
+  data class ContentPart(val text: String, val titleOnly: Boolean)
   @Volatile var requireBothAppAndContent: Boolean = false
 
   fun init(context: Context) {
@@ -44,10 +51,7 @@ object RegexStore {
       .map { normalizeText(it) }
 
     val contentPatternsStr = prefs.getString(KEY_CONTENT_PATTERNS, "urgent\nproduction down") ?: ""
-    contentPatterns = contentPatternsStr.split('\n')
-      .map { it.trim() }
-      .filter { it.isNotEmpty() }
-      .map { normalizeText(it) }
+    contentPatterns = parseContentPatterns(contentPatternsStr)
 
     requireBothAppAndContent = prefs.getBoolean(KEY_REQUIRE_BOTH, false)
   }
@@ -65,10 +69,11 @@ object RegexStore {
     }
   }
 
-  fun notificationMatches(packageName: String, appDisplayName: String?, content: String): Boolean {
+  fun notificationMatches(packageName: String, appDisplayName: String?, content: String, title: String = ""): Boolean {
     val normalizedPackage = normalizeText(packageName)
     val normalizedAppName = appDisplayName?.let { normalizeText(it) } ?: ""
     val normalizedContent = normalizeText(content)
+    val normalizedTitle = normalizeText(title)
 
     val appMatches = if (appNamePatterns.isEmpty()) {
       true
@@ -81,8 +86,8 @@ object RegexStore {
     val contentMatches = if (contentPatterns.isEmpty()) {
       true
     } else {
-      contentPatterns.any { pattern ->
-        normalizedContent.contains(pattern)
+      contentPatterns.any { parts ->
+        parts.all { (if (it.titleOnly) normalizedTitle else normalizedContent).contains(it.text) }
       }
     }
 
@@ -111,11 +116,19 @@ object RegexStore {
 
   fun updateContentRegexes(lines: String) {
     prefs.edit().putString(KEY_CONTENT_PATTERNS, lines).apply()
-    contentPatterns = lines.split('\n')
-      .map { it.trim() }
-      .filter { it.isNotEmpty() }
-      .map { normalizeText(it) }
+    contentPatterns = parseContentPatterns(lines)
   }
+
+  private fun parseContentPatterns(lines: String): List<List<ContentPart>> =
+    lines.split('\n')
+      .map { line ->
+        line.split('&').map { raw ->
+          val part = raw.trim()
+          val titleOnly = part.startsWith("from:", ignoreCase = true)
+          ContentPart(normalizeText(if (titleOnly) part.substring(5) else part), titleOnly)
+        }.filter { it.text.isNotEmpty() }
+      }
+      .filter { it.isNotEmpty() }
 
   fun updateRequireBoth(require: Boolean) {
     prefs.edit().putBoolean(KEY_REQUIRE_BOTH, require).apply()

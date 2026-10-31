@@ -55,6 +55,8 @@ urgent        # Matches notifications with "urgent"
 prod          # OR "production" (partial match)
 down          # OR "down", "shutdown", etc.
 emergency     # OR "emergency"
+from:carrie   # OR the title (in messaging apps, the sender) contains "carrie"
+from:carrie & milk  # OR sent by Carrie AND mentions "milk" (every &-joined part must match)
 ```
 
 ### Combining App and Content Filters
