@@ -120,6 +120,9 @@ class Settings {
                     "percent of the color's full brightness"),
             Field.num("clockWeight", "Clock thickness", 100, 100, 900,
                     "font weight of the digits in steps of 100: 100 hairline, 400 regular, 900 heavy"),
+            Field.bool("lowestBacklight", "Lowest backlight", true,
+                    "hold the screen at its lowest backlight while Nightstand shows, so it looks the same in "
+                            + "any room; clock brightness then sets how bright the digits are"),
             Field.num("clockSize", "Clock size", 28, 10, 45,
                     "digit height as a percent of the screen's shorter side"),
             Field.choice("clockFormat", "Clock format", "12h", new String[] {"12h", "24h"},
@@ -177,6 +180,7 @@ class Settings {
     boolean clock24h() { return "24h".equals(policy.optString("clockFormat")); }
     boolean showEpisode() { return policy.optBoolean("showEpisode"); }
     boolean drift() { return policy.optBoolean("drift"); }
+    boolean lowestBacklight() { return policy.optBoolean("lowestBacklight"); }
 
     /** Sets one field (already valid, from the settings screen) and saves. */
     void set(String key, Object v) {

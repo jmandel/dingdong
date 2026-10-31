@@ -204,7 +204,12 @@ public class SettingsActivity extends Activity {
                 on -> clockChanged("showEpisode", on));
         toggle("Drift", "Move the clock a little each minute so nothing burns in.", settings.drift(),
                 on -> clockChanged("drift", on));
+        toggle("Lowest backlight", "Keeps the screen at its dimmest, so it looks the same in any room "
+                + "and the full-screen preview shows exactly what you'll see.", settings.lowestBacklight(),
+                on -> clockChanged("lowestBacklight", on));
         button("Full-screen preview", () -> startActivity(new Intent(this, PreviewActivity.class)));
+        text("Best judged in the dark: your eyes adapt, so the same clock looks brighter at night.",
+                13, false).setAlpha(0.6f);
     }
 
     private void clockChanged(String key, Object v) {

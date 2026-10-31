@@ -20,6 +20,9 @@ stray tap later in the night can't fill the room.
 The screen shows a dim clock that drifts slowly to avoid burn-in, plus the
 current episode. Color, brightness, thickness, size, 12/24-hour, the episode
 line and drift are all adjustable, with a live preview and a full-screen one.
+By default the screen is held at its lowest backlight while Nightstand shows,
+so it looks the same in any room and the full-screen preview is exact. (Apps
+can't start the real screensaver while the phone is unplugged.)
 
 Everything is configurable in the **Nightstand** app (also the gear next to it
 in Screen saver settings), including a switch between Nightstand and Android's

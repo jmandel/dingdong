@@ -119,6 +119,7 @@ public class NightDream extends DreamService {
         super.onDreamingStarted();
         settings = new Settings(this);  // re-read each time, in case they changed
         view.apply(settings);
+        holdBacklight(getWindow(), settings);
         devicesSeen = false;
         onHeadphones = false;
         pausedOnSpeakerAt = 0;
@@ -381,6 +382,18 @@ public class NightDream extends DreamService {
 
     private SharedPreferences history() {
         return getSharedPreferences("history", Context.MODE_PRIVATE);
+    }
+
+    /**
+     * At the lowest backlight the screen looks the same in a dark room and a
+     * lit one (auto-brightness otherwise varies it), which also makes the
+     * settings preview faithful.
+     */
+    static void holdBacklight(android.view.Window w, Settings s) {
+        android.view.WindowManager.LayoutParams lp = w.getAttributes();
+        lp.screenBrightness = s.lowestBacklight() ? 0f
+                : android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+        w.setAttributes(lp);
     }
 
     // --- Volume ----------------------------------------------------------
