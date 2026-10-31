@@ -2,6 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
+  android:fitsSystemWindows="true"
   android:background="#F5F5F5">
 
   <LinearLayout
@@ -52,7 +53,7 @@
     </LinearLayout>
 
     <TextView
-        android:text="Phone Number Filters"
+        android:text="Alert Rules"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
@@ -61,98 +62,80 @@
         android:textColor="#000000" />
 
     <TextView
-        android:text="Enter simple text to match (not regex). Spaces and punctuation are ignored.\nExample: '555' matches any number with 555"
+        android:text="DingDong alerts when any rule that's on matches. Tap a rule to edit it."
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"
         android:textColor="#333333"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
-        android:id="@+id/editPhone"
-        android:inputType="textMultiLine"
-        android:minLines="3"
+    <LinearLayout
+        android:id="@+id/rulesContainer"
+        android:orientation="vertical"
         android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btnAddRule"
+        android:text="Add rule"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:hint="555\n212\n8005551234"
-        android:textColorHint="#666666"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:background="#FFFFFF"
-        android:padding="12dp"
-        android:elevation="2dp" />
+        android:layout_marginTop="8dp"
+        android:textAllCaps="false"
+        android:textSize="14sp" />
 
     <TextView
-        android:text="App Name Filters"
+        android:text="Edit with an AI"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:textStyle="bold"
         android:textSize="18sp"
-        android:textColor="#000000"/>
+        android:textColor="#000000" />
 
     <TextView
-        android:text="Match partial app names. 'nsmi' matches 'John Smith' app.\nSpaces/punctuation ignored, case doesn't matter."
+        android:text="Copy a prompt with your current settings, paste it into any AI chat app and say what you want changed. Copy the AI's answer and come back here to review it before anything changes."
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"
         android:textColor="#333333"
         android:layout_marginBottom="8dp"/>
 
-    <EditText
-        android:id="@+id/editAppNames"
-        android:inputType="textMultiLine"
-        android:minLines="3"
+    <Button
+        android:id="@+id/btnReviewClipboard"
+        android:text="Review proposed settings from clipboard"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="slack\nwhats\nteams\nnsmi"
-        android:textColorHint="#666666"
-        android:textColor="#000000"
+        android:textAllCaps="false"
         android:textSize="16sp"
-        android:background="#FFFFFF"
-        android:padding="12dp"
-        android:elevation="2dp" />
+        android:backgroundTint="#2196F3"
+        android:textColor="#FFFFFF" />
 
-    <TextView
-        android:text="Notification Content Filters"
+    <LinearLayout
+        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:textStyle="bold"
-        android:textSize="18sp"
-        android:textColor="#000000"/>
+        android:layout_height="wrap_content">
 
-    <TextView
-        android:text="Match text in notifications, one rule per line. Partial matches work ('prod' matches 'production').\nJoin parts with &amp; to require all of them; from: matches only the sender/title.\nExample: 'from:carrie &amp; urgent'"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:textColor="#333333"
-        android:layout_marginBottom="8dp"/>
+      <Button
+          android:id="@+id/btnCopyPrompt"
+          android:text="Copy prompt for AI"
+          android:layout_width="0dp"
+          android:layout_weight="1"
+          android:layout_height="wrap_content"
+          android:textAllCaps="false"
+          android:textSize="14sp" />
 
-    <EditText
-        android:id="@+id/editNotificationContent"
-        android:inputType="textMultiLine"
-        android:minLines="3"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="urgent\nprod\ndown\nemergency\ncritical"
-        android:textColorHint="#666666"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:background="#FFFFFF"
-        android:padding="12dp"
-        android:elevation="2dp" />
-
-    <CheckBox
-        android:id="@+id/checkRequireBoth"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Require BOTH app and content match"
-        android:textSize="16sp"
-        android:textColor="#000000"
-        android:checked="false" />
+      <Button
+          android:id="@+id/btnPastePolicy"
+          android:text="Paste settings"
+          android:layout_width="0dp"
+          android:layout_weight="1"
+          android:layout_height="wrap_content"
+          android:layout_marginStart="8dp"
+          android:textAllCaps="false"
+          android:textSize="14sp" />
+    </LinearLayout>
 
     <TextView
         android:text="Advanced Settings"
@@ -248,6 +231,7 @@
             android:id="@+id/seekRepeatCount"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
+            android:min="1"
             android:max="5"
             android:progress="1"/>
 
@@ -385,22 +369,11 @@
         android:layout_marginTop="16dp">
 
         <Button
-            android:id="@+id/btnSave"
-            android:text="Save All Settings"
+            android:id="@+id/btnViewLog"
+            android:text="View Log"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="56dp"
-            android:textAllCaps="false"
-            android:textSize="16sp"
-            android:backgroundTint="#2196F3"
-            android:textColor="#FFFFFF"/>
-
-        <Button
-            android:id="@+id/btnViewLog"
-            android:text="View Log"
-            android:layout_width="wrap_content"
-            android:layout_height="56dp"
-            android:layout_marginStart="8dp"
             android:textAllCaps="false"
             android:textSize="16sp"
             android:backgroundTint="#757575"

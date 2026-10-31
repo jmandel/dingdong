@@ -4,12 +4,12 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
-import com.dingdong.data.RegexStore
+import com.dingdong.data.PolicyStore
 
 object SoundPlayer {
   fun playOnce(ctx: Context) {
     val selectedSound = SoundManager.getSelectedSound(ctx)
-    val repeatCount = RegexStore.getRepeatCount()
+    val repeatCount = PolicyStore.getRepeatCount()
 
     val mp = MediaPlayer()
     mp.setAudioAttributes(

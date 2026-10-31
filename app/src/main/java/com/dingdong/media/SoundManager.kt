@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import com.dingdong.R
+import com.dingdong.data.PolicyStore
 import java.io.File
 
 data class AlertSound(
@@ -16,7 +17,6 @@ data class AlertSound(
 
 object SoundManager {
   private const val PREFS_NAME = "regex_alerts_prefs"
-  private const val KEY_SELECTED_SOUND = "selected_sound_id"
   private const val KEY_CUSTOM_SOUND_URI = "custom_sound_uri"
 
   val builtInSounds = listOf(
@@ -58,9 +58,10 @@ object SoundManager {
     AlertSound("woodblock", "Woodblock", R.raw.woodblock)
   )
 
+  /** The policy's sound; a custom sound's file stays a device-local setting. */
   fun getSelectedSound(context: Context): AlertSound {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    val soundId = prefs.getString(KEY_SELECTED_SOUND, "alarmed") ?: "alarmed"
+    val soundId = PolicyStore.policy.sound
 
     return if (soundId == "custom") {
       val customUri = prefs.getString(KEY_CUSTOM_SOUND_URI, null)
@@ -72,13 +73,10 @@ object SoundManager {
 
   fun setSelectedSound(context: Context, sound: AlertSound) {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    prefs.edit().apply {
-      putString(KEY_SELECTED_SOUND, sound.id)
-      if (sound.isCustom && sound.customUri != null) {
-        putString(KEY_CUSTOM_SOUND_URI, sound.customUri)
-      }
-      apply()
+    if (sound.isCustom && sound.customUri != null) {
+      prefs.edit().putString(KEY_CUSTOM_SOUND_URI, sound.customUri).apply()
     }
+    PolicyStore.update { it.copy(sound = sound.id) }
   }
 
   fun playSound(context: Context, sound: AlertSound) {

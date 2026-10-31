@@ -28,6 +28,26 @@
       </intent-filter>
     </activity>
 
+    <!-- Review a proposed policy from a link; see PolicyReviewActivity. -->
+    <activity
+        android:name=".ui.PolicyReviewActivity"
+        android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="dingdong" android:host="policy" />
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="https" />
+        <data android:host="config.joshuamandel.com" />
+        <data android:pathPrefix="/dingdong" />
+      </intent-filter>
+    </activity>
+
     <activity
         android:name=".ui.EventLogActivity"
         android:exported="false" />

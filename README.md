@@ -5,10 +5,8 @@ Break through silent mode for important calls and notifications on Android.
 ## Features
 
 - **Breakthrough Silent Mode**: Plays custom alert sounds even when phone is on silent/vibrate
-- **Smart Filtering**: Match calls and notifications by:
-  - Phone numbers (partial matching)
-  - App names (supports both display names and package names)
-  - Notification content (keywords and phrases)
+- **Alert rules**: Match notifications by app, sender and words, and calls by number
+- **Policy as data**: All settings are one JSON policy, edited in the app or by any AI chat app
 - **36 Built-in Sounds**: High-quality notification sounds from the akx/Notifications collection
 - **Custom Sounds**: Add your own MP3 files
 - **Advanced Configuration**:
@@ -24,68 +22,64 @@ Break through silent mode for important calls and notifications on Android.
   - Configurable retention (1 hour to 7 days)
   - Enable/disable logging for privacy
 
-## How Filtering Works
+## Alert Rules
 
-### Text Matching Rules
-- **Normalization**: All text (both filters and content) is converted to lowercase, alphanumeric only
-- **Spaces/punctuation ignored**: "John Smith" becomes "johnsmith", "(555) 123-4567" becomes "5551234567"
-- **Partial matching**: Filter "nsmi" matches "johnsmith" (contains substring)
+DingDong's whole configuration is one JSON **policy**: a list of rules plus
+the alert settings (sound, repeat, minimum volume, and so on). The settings
+screen edits the same policy, so anything set by hand can be set by JSON and
+the other way round.
 
-### Multiple Line Filters (OR Logic)
-Each text box accepts multiple filters, one per line. These are OR'd together:
+A rule alerts when every field it sets matches; DingDong alerts when any rule
+that's on matches.
 
-**Phone Numbers Example:**
+| Field | Matches when |
+|---|---|
+| `app` | the app's name or package contains it |
+| `from` | the title contains any of these; messaging apps put the sender there ("Carrie", or "Group: Carrie") |
+| `textAny` | the title or text contains at least one of these |
+| `textAll` | the title or text contains all of these |
+| `call` | an incoming caller's number contains these digits (call rules have no other match fields) |
+
+Matching ignores case, spaces and punctuation, and finds words inside longer
+text: "prod" matches "production", "(555) 123-4567" contains "5551234".
+
+```json
+{
+  "version": 1,
+  "rules": [
+    {"name": "Carrie on Signal", "app": "signal", "from": ["carrie", "caroline"]},
+    {"name": "Prod outages", "app": "slack", "textAll": ["prod", "down"]},
+    {"name": "Calls from 47822", "call": "47822"}
+  ],
+  "sound": "koto", "repeat": 1, "minVolumePercent": 24,
+  "restoreVolume": true, "restoreDelay": 5, "wakeDuration": 10,
+  "vibrate": false, "logging": true, "logRetentionHours": 12
+}
 ```
-555           # Matches any number with "555"
-212           # OR any number with "212"
-8005551234    # OR this specific number
+
+Ongoing notifications, media players and group summaries (Signal's "Most
+recent from: Carrie") are never matched.
+
+Upgrading from the old text-box filters converts them to rules automatically.
+
+### Editing with an AI
+
+1. **Copy prompt for AI** copies a prompt describing DingDong, this format,
+   and your current policy.
+2. Paste it into any AI chat app and say what you want changed.
+3. The AI replies with a link and a ```json block. Tap the link, or copy the
+   reply and return to DingDong: it notices a policy on the clipboard and
+   offers to review it (**Paste settings** does the same by hand).
+4. The review screen lists every change in plain English. Nothing changes
+   until you tap **Accept**; invalid policies are rejected with the reason.
+
+Links look like `https://config.joshuamandel.com/dingdong#<URL-encoded JSON>`
+(`?json=` also works, as does `dingdong://policy?json=...`). The domain isn't
+verified, so approve it once on the phone:
+
+```bash
+adb shell pm set-app-links-user-selection --user 0 --package com.dingdong true config.joshuamandel.com
 ```
-
-**App Names Example:**
-```
-slack         # Matches Slack app
-whats         # OR WhatsApp (partial match)
-teams         # OR Microsoft Teams
-nsmi          # OR any app with "nsmi" in name (e.g., "John Smith")
-```
-
-**Notification Content Example:**
-```
-urgent        # Matches notifications with "urgent"
-prod          # OR "production" (partial match)
-down          # OR "down", "shutdown", etc.
-emergency     # OR "emergency"
-from:carrie   # OR the title (in messaging apps, the sender) contains "carrie"
-from:carrie & milk  # OR sent by Carrie AND mentions "milk" (every &-joined part must match)
-```
-
-### Combining App and Content Filters
-
-- **Default (Require BOTH unchecked)**:
-  - Triggers if ANY app filter matches OR ANY content filter matches
-  - Example: Will alert for ALL Slack notifications OR any app with "urgent" in content
-
-- **Require BOTH checked**:
-  - Triggers only if AT LEAST ONE app filter AND AT LEAST ONE content filter match
-  - Example: Only alerts for Slack notifications that also contain "urgent"
-
-### Examples
-
-**Example 1: Monitor specific apps**
-- App filters: `slack`, `teams`
-- Content filters: (empty)
-- Result: Alerts for ALL Slack and Teams notifications
-
-**Example 2: Keyword monitoring across all apps**
-- App filters: (empty)
-- Content filters: `server`, `down`, `critical`
-- Result: Alerts for ANY app with these keywords
-
-**Example 3: Specific app + keyword**
-- App filters: `slack`
-- Content filters: `prod`, `urgent`
-- Require BOTH: ✓
-- Result: Only Slack messages containing "prod" or "urgent"
 
 ## Installation
 
@@ -108,13 +102,9 @@ from:carrie & milk  # OR sent by Carrie AND mentions "milk" (every &-joined part
 ## Setup
 
 1. Grant all required permissions through the app
-2. Configure your filter patterns:
-   - Phone numbers to alert on
-   - App names to monitor
-   - Keywords in notification content
+2. Add alert rules (by hand, or with an AI as above)
 3. Choose your alert sound
-4. Adjust advanced settings as needed
-5. Save settings
+4. Adjust advanced settings as needed; changes apply immediately
 
 ## Privacy
 

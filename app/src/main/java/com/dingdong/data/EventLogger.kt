@@ -33,7 +33,7 @@ object EventLogger {
         matchDetails: String = ""
     ) {
         // Check if logging is enabled
-        if (!RegexStore.getLoggingEnabled()) return
+        if (!PolicyStore.getLoggingEnabled()) return
 
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val eventsJson = prefs.getString(KEY_EVENTS, "[]") ?: "[]"
@@ -67,7 +67,7 @@ object EventLogger {
         val events = JSONArray(eventsJson)
 
         // Filter out events older than retention period
-        val retentionHours = RegexStore.getLogRetentionHours()
+        val retentionHours = PolicyStore.getLogRetentionHours()
         val cutoffTime = System.currentTimeMillis() - (retentionHours * 3600000L)
 
         val result = mutableListOf<EventLog>()

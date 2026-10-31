@@ -4,7 +4,7 @@ import android.app.Notification
 import android.content.pm.PackageManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import com.dingdong.data.RegexStore
+import com.dingdong.data.PolicyStore
 import com.dingdong.media.AlertOrchestrator
 import com.dingdong.data.EventLogger
 
@@ -12,7 +12,7 @@ class RegexNotificationListener : NotificationListenerService() {
 
   override fun onCreate() {
     super.onCreate()
-    RegexStore.init(applicationContext)
+    PolicyStore.init(applicationContext)
   }
 
   override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -33,7 +33,9 @@ class RegexNotificationListener : NotificationListenerService() {
 
     val appDisplayName = getAppDisplayName(sbn.packageName)
 
-    val matched = content.isNotBlank() && RegexStore.notificationMatches(sbn.packageName, appDisplayName, content, title)
+    val rule = if (content.isBlank()) null
+      else PolicyStore.matchingRule(sbn.packageName, appDisplayName, title, content)
+    val matched = rule != null
     val triggered = matched
 
     // Log the event
@@ -45,7 +47,7 @@ class RegexNotificationListener : NotificationListenerService() {
         content = content,
         matched = matched,
         triggered = triggered,
-        matchDetails = if (matched) "App: $appDisplayName, Content matched filters" else "No match"
+        matchDetails = if (rule != null) "Rule: ${rule.name}" else "No match"
       )
     }
 

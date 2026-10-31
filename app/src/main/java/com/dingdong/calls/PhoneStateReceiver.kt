@@ -8,7 +8,7 @@ import android.content.pm.PackageManager
 import android.provider.CallLog
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
-import com.dingdong.data.RegexStore
+import com.dingdong.data.PolicyStore
 import com.dingdong.media.AlertOrchestrator
 import com.dingdong.data.EventLogger
 import kotlinx.coroutines.*
@@ -22,7 +22,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
 
-    RegexStore.init(context)
+    PolicyStore.init(context)
 
     when (intent.getStringExtra(TelephonyManager.EXTRA_STATE)) {
       TelephonyManager.EXTRA_STATE_RINGING -> {
@@ -62,7 +62,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
   private fun handleIncoming(ctx: Context, raw: String, source: String) {
     val number = raw.filterNot { it.isWhitespace() }
 
-    val matched = RegexStore.phoneMatches(number)
+    val matched = PolicyStore.phoneMatches(number)
     val triggered = matched
 
     // Log the event

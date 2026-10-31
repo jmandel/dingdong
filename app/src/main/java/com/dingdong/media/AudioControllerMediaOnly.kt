@@ -6,7 +6,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.PowerManager
 import android.os.Vibrator
-import com.dingdong.data.RegexStore
+import com.dingdong.data.PolicyStore
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -20,19 +20,19 @@ class AudioControllerMediaOnly(private val ctx: Context) {
 
   fun prepare(targetMinPercent: Int? = null) {
     val pm = ctx.getSystemService(PowerManager::class.java)
-    val wakeDuration = RegexStore.getWakeDuration() * 1000L
+    val wakeDuration = PolicyStore.getWakeDuration() * 1000L
     wake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "dingdong:play").apply {
       setReferenceCounted(false); acquire(wakeDuration)
     }
 
     // Vibrate if enabled
-    if (RegexStore.getVibrateEnabled()) {
+    if (PolicyStore.getVibrateEnabled()) {
       val vibrator = ctx.getSystemService(Vibrator::class.java)
       vibrator?.vibrate(longArrayOf(0, 200, 100, 200), -1)
     }
 
     val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-    val minVolumePercent = targetMinPercent ?: RegexStore.getMinVolumePercent()
+    val minVolumePercent = targetMinPercent ?: PolicyStore.getMinVolumePercent()
     val minTarget = max(1, (maxVol * (minVolumePercent / 100.0)).roundToInt())
     // Media is often turned down or muted at night; raise it to the floor so
     // the alert is actually audible, not only when it sits at exactly zero.
@@ -57,9 +57,9 @@ class AudioControllerMediaOnly(private val ctx: Context) {
   }
 
   fun restore() {
-    if (RegexStore.getRestoreVolume()) {
+    if (PolicyStore.getRestoreVolume()) {
       // Delay before restoring volume
-      Thread.sleep(RegexStore.getVolumeRestoreDelay() * 1000L)
+      Thread.sleep(PolicyStore.getVolumeRestoreDelay() * 1000L)
       am.setStreamVolume(AudioManager.STREAM_MUSIC, savedMusicVol, 0)
       if (savedMute) am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
     }

@@ -15,12 +15,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.dingdong.R
-import com.dingdong.data.RegexStore
+import com.dingdong.data.Policy
+import com.dingdong.data.PolicyStore
 import com.dingdong.databinding.ActivityMainBinding
 import com.dingdong.media.AlertSound
 import com.dingdong.media.SoundManager
 import com.dingdong.data.EventLogger
 import android.widget.SeekBar
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.view.Gravity
+import android.content.ClipData
+import android.content.ClipboardManager
+import androidx.appcompat.widget.SwitchCompat
 
 class MainActivity : ComponentActivity() {
   private lateinit var vb: ActivityMainBinding
@@ -71,14 +78,28 @@ class MainActivity : ComponentActivity() {
     vb = ActivityMainBinding.inflate(layoutInflater)
     setContentView(vb.root)
 
-    RegexStore.init(applicationContext)
+    PolicyStore.init(applicationContext)
     setupSoundSpinner()
     setupAdvancedSettings()
+    showRules()
 
-    vb.editPhone.setText(RegexStore.getPhonePatternsText())
-    vb.editAppNames.setText(RegexStore.getAppPatternsText())
-    vb.editNotificationContent.setText(RegexStore.getContentPatternsText())
-    vb.checkRequireBoth.isChecked = RegexStore.getRequireBoth()
+    vb.btnAddRule.setOnClickListener { RuleEditor.show(this, null) { showRules() } }
+    vb.btnCopyPrompt.setOnClickListener {
+      clipboard().setPrimaryClip(ClipData.newPlainText("DingDong prompt", AiPrompt.build(PolicyStore.policy)))
+      Toast.makeText(this, "Prompt copied. Paste it into an AI chat app.", Toast.LENGTH_LONG).show()
+    }
+    vb.btnPastePolicy.setOnClickListener {
+      val text = clipboard().primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
+      if (text.isNullOrBlank()) {
+        Toast.makeText(this, "The clipboard is empty", Toast.LENGTH_SHORT).show()
+      } else {
+        startActivity(PolicyReviewActivity.intent(this, text))
+      }
+    }
+    vb.btnReviewClipboard.setOnClickListener {
+      vb.btnReviewClipboard.visibility = android.view.View.GONE
+      pendingProposal?.let { startActivity(PolicyReviewActivity.intent(this, it)) }
+    }
 
     vb.btnPreview.setOnClickListener {
       val selectedPosition = vb.spinnerSound.selectedItemPosition
@@ -105,25 +126,6 @@ class MainActivity : ComponentActivity() {
 
       override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
     })
-
-    vb.btnSave.setOnClickListener {
-      RegexStore.updatePhoneRegexes(vb.editPhone.text.toString())
-      RegexStore.updateAppRegexes(vb.editAppNames.text.toString())
-      RegexStore.updateContentRegexes(vb.editNotificationContent.text.toString())
-      RegexStore.updateRequireBoth(vb.checkRequireBoth.isChecked)
-
-      // Save advanced settings
-      RegexStore.setMinVolumePercent(vb.seekMinVolume.progress)
-      RegexStore.setVolumeRestoreDelay(vb.seekVolumeDelay.progress)
-      RegexStore.setRepeatCount(vb.seekRepeatCount.progress)
-      RegexStore.setWakeDuration(vb.seekWakeDuration.progress)
-      RegexStore.setVibrateEnabled(vb.checkVibrate.isChecked)
-      RegexStore.setRestoreVolume(vb.checkRestoreVolume.isChecked)
-      RegexStore.setLoggingEnabled(vb.checkEnableLogging.isChecked)
-      RegexStore.setLogRetentionHours(vb.seekLogRetention.progress)
-
-      Toast.makeText(this, "All settings saved!", Toast.LENGTH_SHORT).show()
-    }
 
     vb.btnNotificationAccess.setOnClickListener {
       startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
@@ -181,27 +183,101 @@ class MainActivity : ComponentActivity() {
     vb.spinnerSound.setSelection(selectedIndex)
   }
 
+  override fun onResume() {
+    super.onResume()
+    // Settings may have changed in the review screen.
+    showRules()
+    setupSoundSpinner()
+    setupAdvancedSettings()
+  }
+
+  /**
+   * Android only lets the focused app read the clipboard. The clip's timestamp
+   * is readable without reading the clip itself, so it's only read when new.
+   */
+  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    super.onWindowFocusChanged(hasFocus)
+    if (!hasFocus) return
+    val cm = clipboard()
+    val stamp = cm.primaryClipDescription?.timestamp ?: return
+    val prefs = getSharedPreferences("ui", MODE_PRIVATE)
+    if (stamp == prefs.getLong("clip_checked", 0)) return
+    prefs.edit().putLong("clip_checked", stamp).apply()
+    val text = cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString() ?: return
+    val proposed = Policy.find(text) ?: return
+    if (proposed == PolicyStore.policy) return
+    pendingProposal = text
+    vb.btnReviewClipboard.visibility = android.view.View.VISIBLE
+  }
+
+  private var pendingProposal: String? = null
+
+  private fun clipboard() = getSystemService(ClipboardManager::class.java)
+
+  /** One row per rule: on/off switch, name and summary; tap to edit. */
+  private fun showRules() {
+    val box = vb.rulesContainer
+    box.removeAllViews()
+    val rules = PolicyStore.policy.rules
+    if (rules.isEmpty()) {
+      box.addView(TextView(this).apply { text = "No rules yet, so nothing alerts."; setTextColor(0xFF333333.toInt()) })
+    }
+    rules.forEach { rule ->
+      val row = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setBackgroundColor(0xFFFFFFFF.toInt())
+        setPadding(dp(12), dp(8), dp(4), dp(8))
+        layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) }
+      }
+      val words = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+      words.addView(TextView(this).apply { text = rule.name; textSize = 16f; setTextColor(0xFF000000.toInt()) })
+      words.addView(TextView(this).apply {
+        text = rule.describe().replaceFirstChar { it.uppercase() }; textSize = 13f; setTextColor(0xFF555555.toInt())
+      })
+      row.addView(words, LinearLayout.LayoutParams(0, -2, 1f))
+      row.addView(SwitchCompat(this).apply {
+        isChecked = rule.enabled
+        setOnCheckedChangeListener { _, on ->
+          PolicyStore.update { p -> p.copy(rules = p.rules.map { if (it.name == rule.name) it.copy(enabled = on) else it }) }
+        }
+      })
+      row.setOnClickListener { RuleEditor.show(this, rule) { showRules() } }
+      box.addView(row)
+    }
+  }
+
+  private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+  /** Each control writes straight into the policy; there's no separate Save. */
   private fun setupAdvancedSettings() {
     // Load saved values
-    vb.seekMinVolume.progress = RegexStore.getMinVolumePercent()
-    vb.textMinVolume.text = "${RegexStore.getMinVolumePercent()}%"
+    val p = PolicyStore.policy
+    vb.seekMinVolume.progress = p.minVolumePercent
+    vb.textMinVolume.text = "${p.minVolumePercent}%"
 
-    vb.seekVolumeDelay.progress = RegexStore.getVolumeRestoreDelay()
-    vb.textVolumeDelay.text = "${RegexStore.getVolumeRestoreDelay()}s"
+    vb.seekVolumeDelay.progress = p.restoreDelay
+    vb.textVolumeDelay.text = "${p.restoreDelay}s"
 
-    vb.seekRepeatCount.progress = RegexStore.getRepeatCount()
-    vb.textRepeatCount.text = "${RegexStore.getRepeatCount()}x"
+    vb.seekRepeatCount.progress = p.repeat
+    vb.textRepeatCount.text = "${p.repeat}x"
 
-    vb.seekWakeDuration.progress = RegexStore.getWakeDuration()
-    vb.textWakeDuration.text = "${RegexStore.getWakeDuration()}s"
+    vb.seekWakeDuration.progress = p.wakeDuration
+    vb.textWakeDuration.text = "${p.wakeDuration}s"
 
-    vb.checkVibrate.isChecked = RegexStore.getVibrateEnabled()
-    vb.checkRestoreVolume.isChecked = RegexStore.getRestoreVolume()
+    vb.checkVibrate.setOnCheckedChangeListener(null)
+    vb.checkVibrate.isChecked = p.vibrate
+    vb.checkVibrate.setOnCheckedChangeListener { _, on -> PolicyStore.update { it.copy(vibrate = on) } }
+    vb.checkRestoreVolume.setOnCheckedChangeListener(null)
+    vb.checkRestoreVolume.isChecked = p.restoreVolume
+    vb.checkRestoreVolume.setOnCheckedChangeListener { _, on -> PolicyStore.update { it.copy(restoreVolume = on) } }
 
     // Logging settings
-    vb.checkEnableLogging.isChecked = RegexStore.getLoggingEnabled()
-    vb.seekLogRetention.progress = RegexStore.getLogRetentionHours()
-    updateLogRetentionText(RegexStore.getLogRetentionHours())
+    vb.checkEnableLogging.setOnCheckedChangeListener(null)
+    vb.checkEnableLogging.isChecked = p.logging
+    vb.checkEnableLogging.setOnCheckedChangeListener { _, on -> PolicyStore.update { it.copy(logging = on) } }
+    vb.seekLogRetention.progress = p.logRetentionHours
+    updateLogRetentionText(p.logRetentionHours)
 
     // Set up seekbar listeners
     vb.seekMinVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -209,7 +285,9 @@ class MainActivity : ComponentActivity() {
         vb.textMinVolume.text = "$progress%"
       }
       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-      override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+      override fun onStopTrackingTouch(seekBar: SeekBar?) {
+        PolicyStore.update { it.copy(minVolumePercent = seekBar!!.progress) }
+      }
     })
 
     vb.seekVolumeDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -217,7 +295,9 @@ class MainActivity : ComponentActivity() {
         vb.textVolumeDelay.text = "${progress}s"
       }
       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-      override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+      override fun onStopTrackingTouch(seekBar: SeekBar?) {
+        PolicyStore.update { it.copy(restoreDelay = seekBar!!.progress) }
+      }
     })
 
     vb.seekRepeatCount.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -225,7 +305,9 @@ class MainActivity : ComponentActivity() {
         vb.textRepeatCount.text = "${progress}x"
       }
       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-      override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+      override fun onStopTrackingTouch(seekBar: SeekBar?) {
+        PolicyStore.update { it.copy(repeat = seekBar!!.progress) }
+      }
     })
 
     vb.seekWakeDuration.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -233,7 +315,9 @@ class MainActivity : ComponentActivity() {
         vb.textWakeDuration.text = "${progress}s"
       }
       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-      override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+      override fun onStopTrackingTouch(seekBar: SeekBar?) {
+        PolicyStore.update { it.copy(wakeDuration = seekBar!!.progress) }
+      }
     })
 
     vb.seekLogRetention.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -241,7 +325,9 @@ class MainActivity : ComponentActivity() {
         updateLogRetentionText(progress)
       }
       override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-      override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+      override fun onStopTrackingTouch(seekBar: SeekBar?) {
+        PolicyStore.update { it.copy(logRetentionHours = seekBar!!.progress) }
+      }
     })
   }
 
