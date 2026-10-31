@@ -21,12 +21,29 @@
         android:icon="@android:drawable/ic_lock_idle_alarm"
         android:theme="@android:style/Theme.DeviceDefault"
         android:allowBackup="false">
-        <activity android:name=".SettingsActivity" android:exported="true">
+        <activity android:name=".SettingsActivity" android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Proposed settings from an AI reply. Not domain-verified: approve the host once with
+                 pm set-app-links-user-selection (see README). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="config.joshuamandel.com" android:pathPrefix="/nightstand" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nightstand" android:host="policy" />
+            </intent-filter>
         </activity>
+        <activity android:name=".PreviewActivity" android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
 
         <service
             android:name=".NightDream"

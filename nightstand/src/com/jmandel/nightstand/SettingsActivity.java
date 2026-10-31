@@ -2,6 +2,9 @@ package com.jmandel.nightstand;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
@@ -27,6 +30,8 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +49,9 @@ public class SettingsActivity extends Activity {
     private Settings settings;
     private LinearLayout root, checklist;
     private Switch useDream, autoPlay;
+    private NightView preview;
+    /** The last clipboard text offered for review, so a discarded proposal isn't offered again. */
+    private String offeredClip;
     private int pad;
 
     @Override
@@ -69,7 +77,7 @@ public class SettingsActivity extends Activity {
                 false, on -> { if (on != isScreensaver()) setScreensaver(on); });
         autoPlay = toggle("Auto-play",
                 "While the screensaver is showing, start the podcast when your headphones connect.",
-                settings.autoStart(), on -> settings.put("auto_start", on));
+                settings.autoStart(), on -> settings.set("autoStart", on));
 
         heading("Headphones");
         headphonePicker();
@@ -81,15 +89,31 @@ public class SettingsActivity extends Activity {
         heading("Volume");
         slider("Starting volume", 1, 10, 1, settings.startVolume(),
                 v -> v + " of " + maxSteps + " (" + Math.round(100f * v / maxSteps) + "%)",
-                v -> settings.put("start_volume", v));
+                v -> settings.set("startVolume", v));
         slider("Never louder than", 5, 50, 5, settings.maxVolumePct(),
-                v -> v + "%", v -> settings.put("max_volume_pct", v));
+                v -> v + "%", v -> settings.set("maxVolumePct", v));
 
         heading("Episodes and skipping");
         slider("Skip episodes with less left than", 0, 60, 5, settings.minMinutesLeft(),
-                v -> v == 0 ? "never skip" : v + " min", v -> settings.put("min_minutes_left", v));
+                v -> v == 0 ? "never skip" : v + " min", v -> settings.set("minMinutesLeft", v));
         slider("Double/triple-tap skips", 10, 120, 5, settings.skipSeconds(),
-                v -> v + " s", v -> settings.put("skip_seconds", v));
+                v -> v + " s", v -> settings.set("skipSeconds", v));
+
+        clockSection();
+
+        heading("Copy or change everything at once");
+        text("All of these settings are one block of text. Copy a prompt for an AI chat app, tell it "
+                + "what you want, and copy its reply (or tap the link it gives you): Nightstand shows "
+                + "the changes before applying them.", 13, false).setAlpha(0.6f);
+        button("Copy prompt for AI", () -> copy("Nightstand prompt", PolicyTransfer.prompt(settings),
+                "Prompt copied. Paste it into your AI app."));
+        button("Copy settings only", () -> copy("Nightstand settings", settings.toJson(), "Settings copied."));
+        button("Paste proposed settings", () -> {
+            CharSequence clip = clipboardText();
+            JSONObject o = PolicyTransfer.find(clip);
+            if (o == null) toast("No Nightstand settings on the clipboard.");
+            else review(o);
+        });
 
         heading("Setup");
         checklist = new LinearLayout(this);
@@ -99,6 +123,137 @@ public class SettingsActivity extends Activity {
         if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[] {Manifest.permission.BLUETOOTH_CONNECT}, 1);
         }
+        offeredClip = state == null ? null : state.getString("offeredClip");
+        if (state == null) reviewLink(getIntent());
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putString("offeredClip", offeredClip);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        reviewLink(intent);
+    }
+
+    /** Opened from a config.joshuamandel.com/nightstand link: review the policy it carries. */
+    private void reviewLink(Intent intent) {
+        if (intent == null || intent.getData() == null) return;
+        JSONObject o = PolicyTransfer.fromLink(intent.getData());
+        if (o == null) toast("That link doesn't contain readable Nightstand settings.");
+        else review(o);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused);
+        if (!focused) return;
+        // Android only lets the focused app read the clipboard, so check here
+        // rather than in onResume: offer a proposal copied from an AI reply.
+        CharSequence clip = clipboardText();
+        if (clip == null || clip.toString().equals(offeredClip)) return;
+        JSONObject o = PolicyTransfer.find(clip);
+        if (o == null) return;
+        offeredClip = clip.toString();
+        List<String> errors = new ArrayList<>();
+        JSONObject proposed = settings.parse(o, errors);
+        if (proposed == null || !settings.changes(proposed).isEmpty()) review(o);
+    }
+
+    // --- Clock -------------------------------------------------------------
+
+    private static final String[][] COLORS = {
+            {"Red", "#8B0000"}, {"Orange", "#B34700"}, {"Amber", "#B38F00"},
+            {"Green", "#2E8B57"}, {"Blue", "#2F5FBF"}, {"White", "#B0B0B0"},
+    };
+
+    private void clockSection() {
+        heading("Clock");
+        preview = new NightView(this);
+        preview.setStatus("playing · Episode 771: Naan");
+        root.addView(preview, new LinearLayout.LayoutParams(-1, dp(200)));
+
+        LinearLayout swatches = new LinearLayout(this);
+        swatches.setPadding(0, pad / 2, 0, pad / 2);
+        for (String[] c : COLORS) {
+            View v = new View(this);
+            int color = Color.parseColor(c[1]);
+            android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable();
+            d.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            d.setColor(color);
+            v.setBackground(d);
+            v.setContentDescription(c[0]);
+            v.setOnClickListener(x -> clockChanged("clockColor", c[1]));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(36), dp(36));
+            lp.setMarginEnd(dp(12));
+            swatches.addView(v, lp);
+        }
+        root.addView(swatches);
+        slider("Brightness", 5, 100, 5, settings.clockBrightness(), v -> v + "%",
+                v -> clockChanged("clockBrightness", v));
+        slider("Thickness", 100, 900, 100, settings.clockWeight(),
+                v -> v <= 100 ? "hairline" : v <= 300 ? "light" : v <= 500 ? "regular" : v <= 700 ? "bold" : "heavy",
+                v -> clockChanged("clockWeight", v));
+        slider("Size", 10, 45, 1, settings.clockSize(), v -> v + "%", v -> clockChanged("clockSize", v));
+        toggle("24-hour clock", "Show 19:06 instead of 7:06.", settings.clock24h(),
+                on -> clockChanged("clockFormat", on ? "24h" : "12h"));
+        toggle("Show episode", "The playing or paused episode, under the clock.", settings.showEpisode(),
+                on -> clockChanged("showEpisode", on));
+        toggle("Drift", "Move the clock a little each minute so nothing burns in.", settings.drift(),
+                on -> clockChanged("drift", on));
+        button("Full-screen preview", () -> startActivity(new Intent(this, PreviewActivity.class)));
+    }
+
+    private void clockChanged(String key, Object v) {
+        settings.set(key, v);
+        preview.apply(settings);
+    }
+
+    // --- Policy as text ----------------------------------------------------
+
+    private CharSequence clipboardText() {
+        ClipData clip = getSystemService(ClipboardManager.class).getPrimaryClip();
+        if (clip == null || clip.getItemCount() == 0) return null;
+        return clip.getItemAt(0).coerceToText(this);
+    }
+
+    private void copy(String label, String text, String done) {
+        getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(label, text));
+        offeredClip = text;  // don't offer our own copy back as a proposal
+        toast(done);
+    }
+
+    /** Shows what a proposed policy would change, and applies it only on Accept. */
+    private void review(JSONObject proposal) {
+        List<String> errors = new ArrayList<>();
+        JSONObject proposed = settings.parse(proposal, errors);
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        if (proposed == null) {
+            b.setTitle("Can't use these settings")
+                    .setMessage("• " + String.join("\n• ", errors))
+                    .setPositiveButton("OK", null);
+        } else {
+            List<String> changes = settings.changes(proposed);
+            if (changes.isEmpty()) {
+                b.setTitle("Proposed settings").setMessage("Same as what you have now.").setPositiveButton("OK", null);
+            } else {
+                b.setTitle("Apply these changes?")
+                        .setMessage("• " + String.join("\n• ", changes))
+                        .setPositiveButton("Apply", (d, w) -> {
+                            settings.replace(proposed);
+                            recreate();  // every control reads the new policy
+                        })
+                        .setNegativeButton("Discard", null);
+            }
+        }
+        b.show();
+    }
+
+    private void toast(String s) {
+        android.widget.Toast.makeText(this, s, android.widget.Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -140,7 +295,7 @@ public class SettingsActivity extends Activity {
         if (on) {
             String current = readSecure("screensaver_components");
             if (current != null && !current.isEmpty() && !current.contains(DREAM)) {
-                settings.put("previous_screensaver", current);
+                settings.setPreviousScreensaver(current);
             }
             Secure.putString(cr, "screensaver_components", DREAM);
             Secure.putInt(cr, "screensaver_enabled", 1);
@@ -168,13 +323,13 @@ public class SettingsActivity extends Activity {
         } catch (SecurityException e) {
             // No BLUETOOTH_CONNECT yet; the current choice still shows.
         }
-        picker(names, settings.headphones(), v -> settings.put("headphones", v));
+        picker(names, settings.headphones(), v -> settings.set("headphones", v));
         text("Only plays when these are the Bluetooth media output.", 13, false);
     }
 
     private void podcastPicker() {
         List<String> names = new ArrayList<>();
-        Spinner spinner = picker(names, settings.podcast(), v -> settings.put("podcast", v));
+        Spinner spinner = picker(names, settings.podcast(), v -> settings.set("podcast", v));
         TextView note = text("Loading your AntennaPod subscriptions…", 13, false);
         Podcasts podcasts = new Podcasts(this);
         podcasts.connect(c -> podcasts.children("subscriptions", feeds -> {
@@ -342,6 +497,14 @@ public class SettingsActivity extends Activity {
         row.setOnClickListener(v -> sw.toggle());
         root.addView(row);
         return sw;
+    }
+
+    private void button(String label, Runnable onClick) {
+        Button b = new Button(this);
+        b.setText(label);
+        b.setAllCaps(false);
+        b.setOnClickListener(v -> onClick.run());
+        root.addView(b, new LinearLayout.LayoutParams(-2, -2));
     }
 
     private void heading(String s) {

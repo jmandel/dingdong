@@ -17,15 +17,38 @@ it keeps playing and the gestures control it too. A tap pauses it; tapping
 again resumes it on the speaker only within a minute (a quick undo), so a
 stray tap later in the night can't fill the room.
 
-The screen shows a dim red clock that drifts slowly to avoid burn-in, plus the
-current episode.
+The screen shows a dim clock that drifts slowly to avoid burn-in, plus the
+current episode. Color, brightness, thickness, size, 12/24-hour, the episode
+line and drift are all adjustable, with a live preview and a full-screen one.
 
 Everything is configurable in the **Nightstand** app (also the gear next to it
-in Screen saver settings): a switch between Nightstand and Android's usual
-clock screensaver, auto-start on/off, which headphones, which podcast,
-starting and maximum volume, minimum time left, skip length, and a setup
-checklist. Switching Nightstand off puts back the previous screensaver and
-Pixel's low-light clock.
+in Screen saver settings), including a switch between Nightstand and Android's
+usual clock screensaver (switching off puts back the previous screensaver and
+Pixel's low-light clock) and a setup checklist.
+
+## Settings as data
+
+All settings are one JSON object (`Settings.FIELDS` describes every field:
+default, range, help text). The settings screen edits it field by field, or
+you can work on it as text:
+
+- **Copy prompt for AI** copies a self-contained prompt: what Nightstand does,
+  every field, an example, and your current settings. Paste it into any AI chat
+  app and say what you want.
+- The AI replies with a link,
+  `https://config.joshuamandel.com/nightstand#<url-encoded JSON>`, and the
+  same JSON as a code block. Tapping the link opens Nightstand. Copying the
+  reply and returning to Nightstand also works.
+- Either way Nightstand lists the changes in plain English and applies them
+  only on **Apply**. Invalid values and unknown fields are rejected with
+  reasons.
+
+The link host isn't domain-verified (nothing is hosted there; the JSON stays in
+the URL fragment, which browsers don't send). Approve it once per install:
+
+```bash
+adb shell pm set-app-links-user-selection --user 0 --package com.jmandel.nightstand true config.joshuamandel.com
+```
 
 ## Safety
 

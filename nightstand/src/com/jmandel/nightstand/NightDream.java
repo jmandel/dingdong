@@ -118,6 +118,7 @@ public class NightDream extends DreamService {
     public void onDreamingStarted() {
         super.onDreamingStarted();
         settings = new Settings(this);  // re-read each time, in case they changed
+        view.apply(settings);
         devicesSeen = false;
         onHeadphones = false;
         pausedOnSpeakerAt = 0;
